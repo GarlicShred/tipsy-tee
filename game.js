@@ -337,7 +337,7 @@ function buildHole(i){
   courseG.add(g);windmill={x:h.windmill[0],z:h.windmill[1],bl};trees.push({x:h.windmill[0],z:h.windmill[1],r:3.2,h:12})}
  if(h.cart!==undefined){const c=makeCart();c.scale.setScalar(1.6);c.position.set(0,0,h.cart);courseG.add(c);cartObj=c}
  // parked cart at tee
- const pc=makeCart(EQ().cart);pc.position.set(-7,0,3);pc.rotation.y=.3;courseG.add(pc);trees.push({x:-7,z:3,r:1.8,h:3});
+ const pc=makeCart(EQ().cart);pc.position.set(-7,0,3);pc.rotation.y=.3;courseG.add(pc);trees.push({x:-7,z:3,r:1.8,h:3,g:pc});
  h.wind={a:rand(0,Math.PI*2),s:Math.round(rand(0,i===5?9:7))};
  // hallucination props (absinthe): fake holes + hot tub green
  fakeHoles=[];for(let k=0;k<3;k++){const g=new THREE.Group();mesh(G.cyl,0xffffff,0,3,0,g).scale.set(.06,6,.06);const fl=mesh(G.box,new THREE.MeshBasicMaterial({color:[0x7dff4a,0xff2bd6,0xffd23f][k]}),.8,5.4,0,g);fl.scale.set(1.6,1,.05);const cup=new THREE.Mesh(new THREE.CircleGeometry(.75,20),MC(0x111111));cup.rotation.x=-Math.PI/2;cup.position.y=.09;g.add(cup);g.visible=false;courseG.add(g);fakeHoles.push(g)}
@@ -586,6 +586,10 @@ function cartPathBlocked(path,PW){const hit=[];for(const m of hills){const d=dis
 function clearCartPath(path,PW){let mh=0,rt=0;const pts=[];for(let i=0;i<path.length-1;i++)for(let f=0;f<1;f+=.1)pts.push([path[i][0]+(path[i+1][0]-path[i][0])*f,path[i][1]+(path[i+1][1]-path[i][1])*f]);pts.push(path[path.length-1]);
  for(const m of hills){for(let it=0;it<8;it++){const need=hillFoot(m)+PW/2+12;let bi=0,bd=1e9;pts.forEach((q,i)=>{const d=Math.hypot(m.position.x-q[0],m.position.z-q[1]);if(d<bd){bd=d;bi=i}});if(bd>=need)break;const q=pts[bi];let dx=m.position.x-q[0],dz=m.position.z-q[1],l=Math.hypot(dx,dz)||1;m.position.x=q[0]+dx/l*(need+2);m.position.z=q[1]+dz/l*(need+2);if(!it)mh++}}
  for(let i=trees.length-1;i>=0;i--){const t=trees[i];if(t.g&&!t.kind&&distPath(t.x,t.z,path)<PW/2+t.r+1.5){courseG.remove(t.g);trees.splice(i,1);rt++}}S.cartClear={hillsMoved:mh,treesRemoved:rt}}
+// during the cart drive, hide anything standing between the chase camera and the cart (flag pole, trees, benches, parked carts)
+function hideCamBlockers(){const on=S.phase==='cart'&&myCart;const cp=camera.position,kp=myCart?myCart.position:null,A=[cp.x,cp.z],B=kp?[kp.x,kp.z]:A;
+ const blk=(x,z,r)=>on&&distSeg(x,z,A,B)<r+3;if(pinG)pinG.visible=!blk(pinG.position.x,pinG.position.z,.5);
+ for(const t of trees){const g=t.g;if(g)g.visible=!blk(t.x,t.z,t.r)}}
 function startCart(){const c=course;S.phase='cart';ball.visible=false;const pin=new V3(c.pin[0],0,c.pin[1]);const pp=c.full.filter(q=>Math.hypot(q[0]-c.pin[0],q[1]-c.pin[1])>1);const lp=pp[pp.length-1]||[0,0];const back=new V3(c.pin[0]-lp[0],0,c.pin[1]-lp[1]).normalize();const side=new V3(back.z,0,-back.x);
  const start=pin.clone().addScaledVector(back,8),R=srand(S.hole*31+7+CI*101),N=12,L=190,amp=16+R()*8,ph=R()*6;
  const path=[];for(let i=0;i<=N;i++){const f=i/N;const q=start.clone().addScaledVector(back,f*L).addScaledVector(side,Math.sin(f*Math.PI*2.4+ph)*amp*Math.min(1,f*3));path.push([q.x,q.z])}
@@ -603,8 +607,8 @@ function startCart(){const c=course;S.phase='cart';ball.visible=false;const pin=
  for(let i=1;i<N;i++){const ang=segA[i],nx=Math.cos(ang),nz=-Math.sin(ang),a=path[i];
   for(const s of[-1,1]){if(R()<.55){const o=PW/2+3+R()*7;makeTree(a[0]+nx*s*o,a[1]+nz*s*o,.7+R()*.4)}}
   const r=R(),s=R()<.5?-1:1,[x,z]=ptAt(i,.5,s*(PW/2+1.6));
-  if(r<.25){const bn=new THREE.Group();mesh(G.box,0x8b5a2b,0,.6,0,bn).scale.set(2.4,.15,.7);mesh(G.box,0x8b5a2b,0,1.1,-.3,bn).scale.set(2.4,.6,.12);for(const q of[-1,1])mesh(G.box,0x333333,q*1,.3,0,bn).scale.set(.12,.6,.6);bn.position.set(x,0,z);bn.rotation.y=ang+Math.PI/2*s;courseG.add(bn);trees.push({x,z,r:1.2,h:2,kind:'bench'})}
-  else if(r<.45){const pc=makeCart(['classic','fire','camo','pink'][Math.floor(R()*4)]);pc.position.set(x,0,z);pc.rotation.y=ang+R();courseG.add(pc);trees.push({x,z,r:1.7,h:3,kind:'cart'})}}
+  if(r<.25){const bn=new THREE.Group();mesh(G.box,0x8b5a2b,0,.6,0,bn).scale.set(2.4,.15,.7);mesh(G.box,0x8b5a2b,0,1.1,-.3,bn).scale.set(2.4,.6,.12);for(const q of[-1,1])mesh(G.box,0x333333,q*1,.3,0,bn).scale.set(.12,.6,.6);bn.position.set(x,0,z);bn.rotation.y=ang+Math.PI/2*s;courseG.add(bn);trees.push({x,z,r:1.2,h:2,kind:'bench',g:bn})}
+  else if(r<.45){const pc=makeCart(['classic','fire','camo','pink'][Math.floor(R()*4)]);pc.position.set(x,0,z);pc.rotation.y=ang+R();courseG.add(pc);trees.push({x,z,r:1.7,h:3,kind:'cart',g:pc})}}
  // ramps
  const ramps=[];for(const i of[3,8]){const [x,z,ang]=ptAt(i,.5,0);const rg=new THREE.Group();rg.position.set(x,0,z);rg.rotation.y=ang;const th=Math.atan2(1.3,6);const rp=mesh(G.box,0xffcc33,0,.62,0,rg);rp.scale.set(4.6,.22,6.1);rp.rotation.x=-th;for(let k=-1;k<=1;k++){const st=mesh(G.box,0x222222,k*1.5,.66,0,rg);st.scale.set(.5,.23,6.12);st.rotation.x=-th}const sd=mesh(G.box,0x555555,0,.65,3,rg);sd.scale.set(4.6,1.3,.2);courseG.add(rg);ramps.push({x,z,ang})}
  // cones
@@ -790,6 +794,7 @@ function frame(now){requestAnimationFrame(frame);let dt=Math.min(.05,(now-last)/
  const kk=1-Math.exp(-k*dt);S.camP.lerp(tp2,kk);S.camL.lerp(tl,kk);
  camera.position.copy(S.camP);camera.position.x+=Math.sin(t*.9)*dr*1.2;camera.position.y+=Math.sin(t*1.3)*dr*.6;
  if(S.shake>0){S.shake=Math.max(0,S.shake-dt*2);camera.position.x+=rand(-1,1)*S.shake*.6;camera.position.y+=rand(-1,1)*S.shake*.6}
+ hideCamBlockers();
  camera.lookAt(S.camL);camera.rotateZ(Math.sin(t*.8)*dr*.12+Math.sin(t*2.1)*dr*.03+Math.sin(t*.25)*.45*hv);
  sun.position.set(S.camL.x+30,60,S.camL.z+20);sun.target.position.copy(S.camL);
  if(S.flash>0)S.flash=Math.max(0,S.flash-dt*3);$('flash').style.opacity=S.flash*.6;
