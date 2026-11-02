@@ -117,3 +117,8 @@ table{border-collapse:collapse;font-size:13px;margin:auto}td,th{padding:5px 6px;
 @keyframes unl{0%{opacity:0;transform:translate(-50%,-30px) scale(.6) rotate(-8deg)}12%{opacity:1;transform:translate(-50%,0) scale(1.1) rotate(3deg)}20%{transform:translate(-50%,0) scale(1) rotate(0)}85%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-20px) scale(.9)}}
 #honk{position:absolute;top:calc(env(safe-area-inset-top) + 100px);right:8px;font-size:28px;padding:8px 14px;border-radius:50%}
 .earn{margin-top:10px;font-weight:900;color:#ffd23f}
+#cine{position:fixed;inset:0;z-index:60;display:none}
+#cine .rbadge{position:absolute;top:calc(env(safe-area-inset-top) + 14px);left:14px;background:#e02424;color:#fff;font-weight:900;padding:4px 12px;border-radius:6px;letter-spacing:2px;animation:blink 1s infinite}
+#cine .rcap{position:absolute;bottom:22%;left:5%;right:5%;text-align:center;font-size:22px;font-weight:900;color:#fff;background:rgba(0,0,0,.55);padding:10px 12px;border-radius:12px;font-style:italic}
+#cine .rskip{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 14px);right:16px;color:#fff;opacity:.7;font-size:13px}
+@keyframes blink{50%{opacity:.35}}
