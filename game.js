@@ -995,7 +995,7 @@ function netJoin(code){code=netNorm(code);if(code.length!==5){netMsg('Room codes
   c.on('data',m=>{if(c===N.conn)netClientRx(m)});c.on('close',()=>{if(c===N.conn&&N.me)netLost()});
   c.on('iceStateChanged',st=>{if(st==='failed'&&!N.me)fail("Found the room but couldn't connect. Try Wi-Fi on both phones (or both on mobile data), then try again.")})};
  const next=()=>{if(tries<4)setTimeout(attempt,tries?2500:0);else fail('No room found with that code. Check the code, and make sure the host has the game open on the lobby screen.')};
- N.to=setTimeout(()=>fail(miss>=tries&&!N.seenR?'No room found with that code. Make sure the host has the game open on the lobby screen.':"Found the room but couldn't connect. Try Wi-Fi on both phones (or both on mobile data), then try again."),22000);
+ N.to=setTimeout(()=>fail(miss>0&&!N.seenR?'No room found with that code. Make sure the host has the game open on the lobby screen.':"Found the room but couldn't connect. Try Wi-Fi on both phones (or both on mobile data), then try again."),22000);
  peer.on('open',()=>next());
  peer.on('error',e=>{if(S.net!==N)return;if(e.type==='peer-unavailable'){miss++;if(N.seenR)useRelay();else if(!N.me)next()}else if(!N.me)fail('Online error: '+e.type+'. Check your connection and try again.')})}
 function netClientRx(m){const N=S.net;if(!N||!m)return;N.seenH=Date.now();if(m.t==='hb')return;
