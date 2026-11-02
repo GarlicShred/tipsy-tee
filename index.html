@@ -1,0 +1,46 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Tipsy Tee">
+<meta name="theme-color" content="#1b6b3a"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" href="icon-192.png">
+<title>Tipsy Tee</title><link rel="stylesheet" href="style.css"></head><body>
+<canvas id="c"></canvas>
+<div id="ui">
+ <div id="title" class="screen show">
+  <div class="logo">TIPSY<br>TEE<span>🍺⛳</span></div><div class="tag">The golf game where liquid courage is a strategy.</div>
+  <button class="big" id="bPlay">PLAY</button><button id="bShop">🛍️ Pro Shop</button><button id="bHow">How to Play</button><div id="coinTxt" class="coins"></div><div id="bestTxt" class="small"></div>
+ </div>
+ <div id="courses" class="screen panel wide"><div class="shead"><h2>Pick a Course</h2><div id="cCoins" class="coins"></div></div><div id="cList"></div><button id="bCrsBack">Back</button></div>
+ <div id="shop" class="screen panel wide"><div class="shead"><h2>🛍️ Pro Shop</h2><div id="sCoins" class="coins"></div></div><div id="sTabs"></div><div id="sGrid"></div><div class="small">Earn 🪙 by finishing rounds, beating par, style points and cart-dash medals.</div><button id="bShopBack">Back</button></div>
+ <div id="setup" class="screen"><h2>How many golfers?</h2><div class="row" id="pcount"></div><div class="small">Pass-and-play: hand the phone over between turns.</div><button id="bSetupBack">Back</button></div>
+ <div id="creator" class="screen"><div class="ctop"><h2 id="cTitle">Golfer 1</h2><input id="cName" maxlength="12" placeholder="Name"></div>
+  <div id="cOpts"></div><div class="row"><button id="cRand">🎲 Random</button><button class="big" id="cNext">Next ▶</button></div></div>
+ <div id="how" class="screen panel"><h2>How to Play</h2><ul>
+  <li><b>Aim:</b> drag left/right anywhere on the course.</li><li><b>Swing:</b> HOLD the swing button to build power, RELEASE to lock it, then TAP again to stop the accuracy needle in the middle.</li>
+  <li><b>Drink 🍺:</b> the drunker you are the FURTHER you hit… but the world sways, aim wobbles and meters go crazy.</li>
+  <li><b>🎯 Distance help:</b> the gold tick on the power bar is the ideal power for this club (it accounts for lie and wind). The top bar suggests a club — tap it to switch. The drunker you are, the more the tick wobbles.</li><li><b>Beer</b> steady · <b>Whiskey</b> big buzz · <b>Vodka Soda</b> crisp & steady · <b>Jäger Bomb</b> bullet-time meters · <b>Tequila</b> flips left/right · <b>Keg Stand</b> HOLD to chug · <b>Absinthe</b> fake holes & a hot tub · <b>Rocket Fuel</b> cart turbo · <b>Moonshine</b> monster power, blackout risk · <b>Hot Sauce</b> sobers you up (ouch) · <b>Espresso/Water</b> sober up · <b>Mystery Shot</b> chaos!</li>
+  <li>Hit 100% and you <b>black out</b> (+1 stroke). Sober up too fast after a bender and you get a <b>hangover</b> (weak shots).</li>
+  <li><b>Cart Dash:</b> drive to the next tee through the checkpoints. Hit ramps for air, dodge ducks (honk 📯 to scare them off), cones and sprinklers. Gold, silver and bronze medals pay 🪙.</li><li><b>Liquid Courage:</b> drive 200m+ while 50%+ drunk for bonus style points. Watch the wind, water, sand, trees, the windmill and the rogue cart!</li></ul><button id="bHowBack">Got it</button></div>
+ <div id="hud">
+  <div id="top"><div id="hInfo"></div><div id="hDist"></div><button id="bPause">⏸</button></div>
+  <div id="wind"><div id="wArrow">➤</div><div id="wTxt"></div></div>
+  <div id="drunk"><div class="lbl">BUZZ METER <span id="dPct">0%</span></div><div class="bar"><div id="dFill"></div></div><div id="status"></div></div>
+  <div id="power"><div id="pFill"></div><div class="pmark"></div><div id="pIdeal"></div></div>
+  <div id="acc"><div class="zone"></div><div id="needle"></div></div>
+  <div id="bottom"><button id="bDrink">🍺</button><div id="clubs"></div><button id="bSwing">SWING</button></div>
+ </div>
+ <div id="drinks" class="sheet"></div>
+ <div id="toasts"></div>
+ <div id="pass" class="screen panel"><h2 id="passTxt"></h2><div id="passSub" class="small"></div><button class="big" id="bPassGo">I'm ready!</button></div>
+ <div id="pause" class="screen panel"><h2>Paused</h2><button id="bResume" class="big">Resume</button><button id="bCard">Scorecard</button><button id="bHand">Cart wheel</button><button id="bSound">Sound: On</button><button id="bQuit">Quit to Title</button></div>
+ <div id="card" class="screen panel"><h2 id="cardTitle">Scorecard</h2><div id="cardTbl"></div><button class="big" id="bCardGo">Continue</button></div>
+ <div id="flash"></div><div id="cartUI"><div id="cartTxt"></div><button id="stSkip">Skip ▶</button><button id="honk">📯</button><div class="st"><div class="pedals"><button id="brake">BRAKE</button><button id="gas">GAS</button></div><div id="wheel"><div class="rim"></div><div class="spoke s1"></div><div class="spoke s2"></div><div class="hub">🛺</div><div class="top"></div></div></div></div>
+ <div id="skip" class="small">tap to skip</div>
+ <div id="keg"><div class="kt">🛢️ KEG STAND</div><div class="kbar"><div id="kFill"></div></div><div id="kTxt"></div><button id="kegBtn">HOLD TO CHUG</button><div class="small">Let go when you've had enough… 99% = legend</div></div>
+ <div id="black"></div>
+ <div id="unlock"><div class="ub">NEW UNLOCK!</div><div class="ue"></div><div class="un"></div><div class="uw"></div></div>
+ <div id="rot">Rotate to portrait for the best experience 📱</div>
+</div>
+<script src="three.min.js"></script><script src="game.js"></script>
+<script>if('serviceWorker' in navigator&&location.protocol!=='capacitor:')navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
+</body></html>
