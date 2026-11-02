@@ -8,7 +8,7 @@
 <div id="ui">
  <div id="title" class="screen show">
   <div class="logo">TIPSY<br>TEE<span>🍺⛳</span></div><div class="tag">The golf game where liquid courage is a strategy.</div>
-  <button class="big" id="bPlay">PLAY</button><button id="bShop">🛍️ Pro Shop</button><button id="bTroph">🏆 Trophies</button><button id="bHow">How to Play</button><div id="coinTxt" class="coins"></div><div id="bestTxt" class="small"></div>
+  <button class="big" id="bPlay">PLAY</button><button id="bShop">🛍️ Pro Shop</button><button id="bOnline">🌐 Play Online</button><button id="bTroph">🏆 Trophies</button><button id="bHow">How to Play</button><div id="coinTxt" class="coins"></div><div id="bestTxt" class="small"></div>
  </div>
  <div id="courses" class="screen panel wide"><div class="shead"><h2>Pick a Course</h2><div id="cCoins" class="coins"></div></div><div id="cList"></div><button id="bCrsBack">Back</button></div>
  <div id="shop" class="screen panel wide"><div class="shead"><h2>🛍️ Pro Shop</h2><div id="sCoins" class="coins"></div></div><div id="sTabs"></div><div id="sGrid"></div><div class="small">Earn 🪙 by finishing rounds, beating par, style points and cart-dash medals.</div><button id="bShopBack">Back</button></div>
@@ -32,13 +32,15 @@
  <div id="drinks" class="sheet"></div>
  <div id="toasts"></div>
  <div id="trophy" class="screen panel wide"><h2>🏆 Trophy Shelf</h2><div id="tList"></div><button id="bTrBack">Back</button></div>
+ <div id="online" class="screen panel"><h2>🌐 Play Online</h2><div class="small">Private room for up to 4 phones. Everyone plays the same hole at the same time.</div><button id="bHost" class="big">Host a Room</button><div class="small">— or join a friend —</div><div class="row"><input id="joinCode" maxlength="5" placeholder="CODE" autocomplete="off" autocapitalize="characters"><button id="bJoin">Join</button></div><button id="bOnBack">Back</button></div>
+ <div id="lobby" class="screen panel"><h2>Room <span id="lbCode">…</span></h2><div id="lbCrs" class="small"></div><div id="lbLink" class="small"></div><button id="bShare">📋 Share invite link</button><div id="lbList"></div><div id="lbMsg" class="small"></div><button id="bLbStart" class="big">Start Round</button><button id="bLbLeave">Leave</button></div>
  <div id="pass" class="screen panel"><h2 id="passTxt"></h2><div id="passSub" class="small"></div><button class="big" id="bPassGo">I'm ready!</button></div>
  <div id="pause" class="screen panel"><h2>Paused</h2><button id="bResume" class="big">Resume</button><button id="bCard">Scorecard</button><button id="bHand">Cart wheel</button><button id="bSound">Sound: On</button><button id="bQuit">Quit to Title</button></div>
  <div id="card" class="screen panel"><h2 id="cardTitle">Scorecard</h2><div id="cardTbl"></div><button class="big" id="bCardGo">Continue</button></div>
  <div id="flash"></div><div id="cartUI"><div id="cartTxt"></div><button id="stSkip">Skip ▶</button><button id="honk">📯</button><div class="st"><div class="pedals"><button id="brake">BRAKE</button><button id="gas">GAS</button></div><div id="wheel"><div class="rim"></div><div class="spoke s1"></div><div class="spoke s2"></div><div class="hub">🛺</div><div class="top"></div></div></div></div>
  <div id="skip" class="small">tap to skip</div>
  <div id="keg"><div class="kt">🛢️ KEG STAND</div><div class="kbar"><div id="kFill"></div></div><div id="kTxt"></div><button id="kegBtn">HOLD TO CHUG</button><div class="small">Let go when you've had enough… 99% = legend</div></div>
- <div id="black"></div>
+ <div id="netWait"></div><div id="black"></div>
  <div id="unlock"><div class="ub">NEW UNLOCK!</div><div class="ue"></div><div class="un"></div><div class="uw"></div></div>
  <div id="rot">Rotate to portrait for the best experience 📱</div>
 </div>

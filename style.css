@@ -130,3 +130,9 @@ table{border-collapse:collapse;font-size:13px;margin:auto}td,th{padding:5px 6px;
 #tList{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:62vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 #tList .tr{background:rgba(255,255,255,.1);border-radius:12px;padding:8px;text-align:center;position:relative;font-size:13px}#tList .tr small{display:block;opacity:.75;font-size:11px}
 #tList .te{font-size:30px}#tList .lk{opacity:.45}#tList .tr span{position:absolute;top:6px;right:8px;font-weight:900;color:#ffd23f}
+
+#joinCode{font:900 22px/1 inherit;text-transform:uppercase;letter-spacing:4px;width:9em;text-align:center;padding:10px;border-radius:12px;border:0}
+#lbCode{letter-spacing:4px;color:#ffd23f}#lbLink{word-break:break-all;opacity:.8}
+#lbList{margin:10px 0;display:grid;gap:6px}.lbp{background:rgba(255,255,255,.12);border-radius:10px;padding:8px 12px;font-weight:800;text-align:left}.lbp.dim{opacity:.45;font-weight:400}
+#bLbStart:disabled{opacity:.45}
+#netWait{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:30;pointer-events:none}#netWait>div{background:rgba(0,0,0,.6);color:#fff;font-weight:900;font-size:22px;text-align:center;padding:16px 22px;border-radius:16px}#netWait small{font-weight:600;font-size:14px}
