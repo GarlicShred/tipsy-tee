@@ -122,3 +122,11 @@ table{border-collapse:collapse;font-size:13px;margin:auto}td,th{padding:5px 6px;
 #cine .rcap{position:absolute;bottom:22%;left:5%;right:5%;text-align:center;font-size:22px;font-weight:900;color:#fff;background:rgba(0,0,0,.55);padding:10px 12px;border-radius:12px;font-style:italic}
 #cine .rskip{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 14px);right:16px;color:#fff;opacity:.7;font-size:13px}
 @keyframes blink{50%{opacity:.35}}
+
+#hDare{position:absolute;top:calc(env(safe-area-inset-top) + 128px);left:8px;font-size:11px;font-weight:800;color:#ffd23f;background:rgba(0,0,0,.35);padding:3px 8px;border-radius:10px;max-width:60vw;pointer-events:none}
+.troph{margin:8px 0;padding:8px;background:rgba(255,210,63,.12);border-radius:10px;font-size:13px}.troph .trw{margin-top:3px}
+.pbnew{font-weight:900;color:#ffd23f;font-size:18px;animation:blink 1s infinite}.pwnew{font-weight:900;color:#ff6b6b;font-size:18px}
+#bReel{margin-top:8px}
+#tList{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:62vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#tList .tr{background:rgba(255,255,255,.1);border-radius:12px;padding:8px;text-align:center;position:relative;font-size:13px}#tList .tr small{display:block;opacity:.75;font-size:11px}
+#tList .te{font-size:30px}#tList .lk{opacity:.45}#tList .tr span{position:absolute;top:6px;right:8px;font-weight:900;color:#ffd23f}
