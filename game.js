@@ -953,11 +953,19 @@ function HOLES_OF(ci){return COURSES[ci].holes.length}
 function netLobby(role,code){S.mode='lobby';screen('lobby');$('lbList').innerHTML='';$('bLbStart').style.display='none';$('lbCode').textContent='…';$('lbLink').textContent='';netMsg('Connecting to the matchmaker…');
  loadPeer().then(()=>role==='host'?netHost(0):netJoin(code)).catch(()=>netMsg('Could not load online mode. Check your connection.'))}
 const NPROTO=2;
-function netHost(tries){const code=netCode(),peer=new Peer(NETP+code,{debug:0});const N=S.net={host:1,peer,code,v:NPROTO,me:'host',ci:S.netCi||0,conns:new Map(),list:[{id:'host',c:cleanC(cChar)}],sc:{},done:{},started:0,mode:'classic'};
+
+const PCFG={debug:0,config:{iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302','stun:stun2.l.google.com:19302']},{urls:['stun:stun3.l.google.com:19302','stun:stun4.l.google.com:19302']},{urls:'stun:stun.cloudflare.com:3478'}]}};
+// Relay: when a direct phone-to-phone link can't open, game messages ride the matchmaker's own secure websocket (port 443, no account).
+function rlyHook(peer,fn){const o=peer._handleMessage.bind(peer);peer._handleMessage=e=>{if(e&&e.type==='CANDIDATE'&&e.payload&&e.payload.tt!==undefined){try{fn(e.src,e.payload.tt)}catch(x){}return}o(e)}}
+function rlySend(peer,dst,m){try{peer.socket.send({type:'CANDIDATE',dst,payload:{candidate:{candidate:'',sdpMid:'0',sdpMLineIndex:0},type:'data',connectionId:'dc_tt',tt:m}})}catch(e){}}
+function netHost(tries){const code=netCode(),peer=new Peer(NETP+code,PCFG);const N=S.net={host:1,peer,code,v:NPROTO,me:'host',ci:S.netCi||0,conns:new Map(),list:[{id:'host',c:cleanC(cChar)}],sc:{},done:{},started:0,mode:'classic'};
  peer.on('open',()=>{N.ok=1;N.retry=0;if(N.rc){N.rc=0;if(S.mode==='lobby')netMsg('Room is back online ✅ Share the code or link.');else toast('📡 Room back online',true,1400)}if(N.url)return;$('lbCode').textContent=code;const url=location.origin+location.pathname+'?room='+code;$('lbLink').textContent=url;N.url=url;netMsg('Share the code or link. Up to 4 golfers. Keep this screen open until friends join — sending the invite? Come right back.');netRoster()});
  peer.on('error',e=>{if(S.net!==N)return;if(e.type==='unavailable-id'&&!N.ok&&tries<4){peer.destroy();netHost(tries+1);return}if(N.ok&&['unavailable-id','network','server-error','socket-error','socket-closed','disconnected'].includes(e.type)){hostReconnect(N);return}if(e.type!=='peer-unavailable')netMsg('Online error: '+e.type+'. Try again.')});
  peer.on('disconnected',()=>{if(S.net===N&&!peer.destroyed)hostReconnect(N)});
- peer.on('connection',c=>{c.on('data',m=>netHostRx(c,m));c.on('close',()=>netDrop(c.peer));c.on('error',()=>netDrop(c.peer))})}
+ peer.on('connection',c=>{c.on('data',m=>netHostRx(c,m));c.on('close',()=>{if(!c.relay&&N.conns.get(c.peer)&&N.conns.get(c.peer).relay)return;netDrop(c.peer)});c.on('error',()=>{if(N.conns.get(c.peer)&&N.conns.get(c.peer).relay)return;netDrop(c.peer)})});
+ N.rc2={};rlyHook(peer,(src,m)=>{if(S.net!==N||!m)return;if(m.ping){rlySend(peer,src,{t:'pong'});return}
+  let c=N.rc2[src];if(!c||!c.open){const ex=N.conns.get(src);if(ex&&!ex.relay&&ex.open)return;c=N.rc2[src]={peer:src,open:true,relay:1,_h:{},on(e,f){this._h[e]=f},send(x){if(this.open)rlySend(N.peer,src,x)},close(){this.open=false}};c.on('data',x=>netHostRx(c,x))}
+  if(m.bye){c.open=false;netDrop(src);return}c._h.data(m)})}
 function hostReconnect(N,force){if(S.net!==N||!N.host||N.left||N.peer.destroyed)return;if(N.rcT&&!force)return;N.rc=1;if(S.mode==='lobby')netMsg('📡 Reconnecting room…');
  N.rcT=setTimeout(()=>{N.rcT=0;if(S.net!==N||N.left)return;try{if(force&&!N.peer.disconnected)N.peer.disconnect();N.peer.reconnect()}catch(e){}N.retry=(N.retry||0)+1;setTimeout(()=>{if(S.net===N&&N.peer.disconnected&&!N.peer.destroyed)hostReconnect(N)},4000)},force?150:Math.min(4000,600+(N.retry||0)*800))}
 // iOS freezes the page when you switch to Messages: re-register the same room code as soon as we're back
@@ -974,17 +982,22 @@ function netBroad(){const N=S.net;netSend({t:'roster',v:NPROTO,list:N.list,ci:N.
 function netDrop(id){const N=S.net;if(!N||!N.host||!N.conns.has(id))return;const p=N.list.find(q=>q.id===id);N.conns.delete(id);N.list=N.list.filter(q=>q.id!==id);ghostRm(id);if(p){toast(`📡 ${p.c.name} left the room`,true,1600)}netBroad();if(N.started){netCheck();raceHostCheck()}}
 function netNorm(c){return String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/0/g,'O').replace(/1/g,'I')}
 function netJoin(code){code=netNorm(code);if(code.length!==5){netMsg('Room codes are 5 letters.');return}
- const peer=new Peer({debug:0});const N=S.net={host:0,peer,code,ci:0,list:[],sc:{},started:0};$('lbCode').textContent=code;
- const fail=t=>{if(S.net===N&&!N.me){netMsg(t);clearTimeout(N.to)}};let tries=0,miss=0;
+ const peer=new Peer(PCFG);const N=S.net={host:0,peer,code,ci:0,list:[],sc:{},started:0};$('lbCode').textContent=code;
+ const fail=t=>{if(S.net===N&&!N.me){if(N.seenR)return useRelay();netMsg(t);clearTimeout(N.to);N.failed=1}};let tries=0,miss=0;const H=NETP+code;
+ const joined=c=>{if(N.me)return;N.me=peer.id;clearTimeout(N.to);clearTimeout(N.rT);N.conn=c;N.via=c.relay?'relay':'direct';c.send({t:'hi',v:NPROTO,c:cleanC(cChar)});netMsg('Joined! Waiting for the host to start…')};
+ const useRelay=()=>{if(N.me||!N.seenR||S.net!==N)return;joined({relay:1,open:true,peer:H,send(m){if(this.open)rlySend(peer,H,m)},close(){if(this.open){this.open=false;rlySend(peer,H,{bye:1})}}})};
+ rlyHook(peer,(src,m)=>{if(S.net!==N||src!==H||!m)return;if(m.t==='pong'){if(!N.seenR){N.seenR=1;if(N.failed||window.__noRTC)useRelay()}return}if(N.conn&&N.conn.relay)netClientRx(m)});
+ peer.on('open',()=>{const ping=()=>{if(!N.seenR&&!N.me&&S.net===N)rlySend(peer,H,{ping:1})};ping();setTimeout(ping,1500);setTimeout(ping,3500);setTimeout(ping,6000)});
+ N.rT=setTimeout(()=>{if(!N.me)useRelay()},5000);
  const attempt=()=>{if(S.net!==N||N.me||N.rejected)return;tries++;if(tries>1)netMsg(`Looking for room ${code}… (try ${tries}/4)`);
   const c=peer.connect(NETP+code,{reliable:true});N.conn=c;
-  c.on('open',()=>{if(N.me)return;N.me=peer.id;clearTimeout(N.to);N.conn=c;c.send({t:'hi',v:NPROTO,c:cleanC(cChar)});netMsg('Joined! Waiting for the host to start…')});
+  c.on('open',()=>{if(N.me||window.__noRTC)return;joined(c)});
   c.on('data',m=>{if(c===N.conn)netClientRx(m)});c.on('close',()=>{if(c===N.conn&&N.me)netLost()});
   c.on('iceStateChanged',st=>{if(st==='failed'&&!N.me)fail("Found the room but couldn't connect. Try Wi-Fi on both phones (or both on mobile data), then try again.")})};
  const next=()=>{if(tries<4)setTimeout(attempt,tries?2500:0);else fail('No room found with that code. Check the code, and make sure the host has the game open on the lobby screen.')};
- N.to=setTimeout(()=>fail(miss>=tries?'No room found with that code. Make sure the host has the game open on the lobby screen.':"Found the room but couldn't connect. Try Wi-Fi on both phones (or both on mobile data), then try again."),22000);
+ N.to=setTimeout(()=>fail(miss>=tries&&!N.seenR?'No room found with that code. Make sure the host has the game open on the lobby screen.':"Found the room but couldn't connect. Try Wi-Fi on both phones (or both on mobile data), then try again."),22000);
  peer.on('open',()=>next());
- peer.on('error',e=>{if(S.net!==N)return;if(e.type==='peer-unavailable'){miss++;if(!N.me)next()}else if(!N.me)fail('Online error: '+e.type+'. Check your connection and try again.')})}
+ peer.on('error',e=>{if(S.net!==N)return;if(e.type==='peer-unavailable'){miss++;if(N.seenR)useRelay();else if(!N.me)next()}else if(!N.me)fail('Online error: '+e.type+'. Check your connection and try again.')})}
 function netClientRx(m){const N=S.net;if(!N||!m)return;N.seenH=Date.now();if(m.t==='hb')return;
  if(m.t==='no'){N.rejected=1;clearTimeout(N.to);netMsg(m.why);return}
  if(m.t==='roster'){if(m.v!==NPROTO){N.rejected=1;netMsg('The host needs to update: close the game fully and reopen it, then make a new room.');try{N.peer.destroy()}catch(e){}return}N.list=m.list;N.ci=m.ci;N.sc=m.sc||N.sc;N.mode=m.mode||'classic';for(const id of Object.keys(S.remotes||{}))if(!N.list.some(p=>p.id===id))ghostRm(id);if(S.mode==='lobby')netRoster();return}
@@ -994,7 +1007,7 @@ function netClientRx(m){const N=S.net;if(!N||!m)return;N.seenH=Date.now();if(m.t
  if(m.t==='pos'){ghost(m.id,m)}if(m.t==='ev'&&m.id!==N.me)remoteEv(m.id,m)}
 function netLost(){const N=S.net;if(!N||N.left)return;if(N.rejected){return}if(!N.started){netMsg('Lost connection to the host.');return}
  toast('📡 Host disconnected — finishing this round solo',true,2600);S.net=null;raceOff();ghostClear();if(S.waitNet){S.waitNet=0;$('netWait').style.display='none';soloAdvance()}}
-function netLeave(){const N=S.net;raceOff();if(!N)return;N.left=1;S.net=null;S.waitNet=0;$('netWait').style.display='none';ghostClear();try{N.peer.destroy()}catch(e){}}
+function netLeave(){const N=S.net;raceOff();if(!N)return;N.left=1;S.net=null;S.waitNet=0;$('netWait').style.display='none';ghostClear();try{if(N.conn&&N.conn.relay)N.conn.close()}catch(e){}setTimeout(()=>{try{N.peer.destroy()}catch(e){}},150)}
 function netStart(){const N=S.net;N.started=1;N.sc={};N.done={};S.race=N.mode==='race'?1:0;N.pts={};N.rdy={};N.rh={};S.raceWin=0;setCourse(N.ci);S.players=[{c:cChar,g:null,drunk:0,peak:0,hang:0,scores:[],style:0,strokes:0,steady:0,boost:0}];startRound()}
 function netFinish(p){const N=S.net;S.waitNet=1;const w=$('netWait');w.style.display='flex';netWaitTxt();if(N.host){N.sc.host=N.sc.host||[];N.sc.host[S.hole]=p.strokes;N.done.host=S.hole;netCheck()}else netSend({t:'done',hole:S.hole,s:p.strokes})}
 function netWaitTxt(){const N=S.net;if(!N)return;const wait=N.list.filter(q=>q.id!==N.me&&!((N.sc[q.id]||[])[S.hole]!=null)).map(q=>q.c.name);$('netWait').innerHTML=`<div>⛳ Holed out!<br><small>${wait.length?'Waiting for '+wait.map(esc).join(', ')+'…':'Syncing…'}</small></div>`}
