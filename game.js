@@ -952,29 +952,42 @@ function netRoster(){const N=S.net;$('lbList').innerHTML=N.list.map((p,i)=>`<div
 function HOLES_OF(ci){return COURSES[ci].holes.length}
 function netLobby(role,code){S.mode='lobby';screen('lobby');$('lbList').innerHTML='';$('bLbStart').style.display='none';$('lbCode').textContent='…';$('lbLink').textContent='';netMsg('Connecting to the matchmaker…');
  loadPeer().then(()=>role==='host'?netHost(0):netJoin(code)).catch(()=>netMsg('Could not load online mode. Check your connection.'))}
-function netHost(tries){const code=netCode(),peer=new Peer(NETP+code,{debug:0});const N=S.net={host:1,peer,code,me:'host',ci:S.netCi||0,conns:new Map(),list:[{id:'host',c:cleanC(cChar)}],sc:{},done:{},started:0,mode:'classic'};
- peer.on('open',()=>{$('lbCode').textContent=code;const url=location.origin+location.pathname+'?room='+code;$('lbLink').textContent=url;N.url=url;netMsg('Share the code or link. Up to 4 golfers.');netRoster()});
- peer.on('error',e=>{if(e.type==='unavailable-id'&&tries<4){peer.destroy();netHost(tries+1)}else if(S.net===N)netMsg('Online error: '+e.type+'. Try again.')});
- peer.on('disconnected',()=>{if(S.net===N&&!peer.destroyed)setTimeout(()=>{try{peer.reconnect()}catch(e){}},1000)});
+const NPROTO=2;
+function netHost(tries){const code=netCode(),peer=new Peer(NETP+code,{debug:0});const N=S.net={host:1,peer,code,v:NPROTO,me:'host',ci:S.netCi||0,conns:new Map(),list:[{id:'host',c:cleanC(cChar)}],sc:{},done:{},started:0,mode:'classic'};
+ peer.on('open',()=>{N.ok=1;N.retry=0;if(N.rc){N.rc=0;if(S.mode==='lobby')netMsg('Room is back online ✅ Share the code or link.');else toast('📡 Room back online',true,1400)}if(N.url)return;$('lbCode').textContent=code;const url=location.origin+location.pathname+'?room='+code;$('lbLink').textContent=url;N.url=url;netMsg('Share the code or link. Up to 4 golfers. Keep this screen open until friends join — sending the invite? Come right back.');netRoster()});
+ peer.on('error',e=>{if(S.net!==N)return;if(e.type==='unavailable-id'&&!N.ok&&tries<4){peer.destroy();netHost(tries+1);return}if(N.ok&&['unavailable-id','network','server-error','socket-error','socket-closed','disconnected'].includes(e.type)){hostReconnect(N);return}if(e.type!=='peer-unavailable')netMsg('Online error: '+e.type+'. Try again.')});
+ peer.on('disconnected',()=>{if(S.net===N&&!peer.destroyed)hostReconnect(N)});
  peer.on('connection',c=>{c.on('data',m=>netHostRx(c,m));c.on('close',()=>netDrop(c.peer));c.on('error',()=>netDrop(c.peer))})}
+function hostReconnect(N,force){if(S.net!==N||!N.host||N.left||N.peer.destroyed)return;if(N.rcT&&!force)return;N.rc=1;if(S.mode==='lobby')netMsg('📡 Reconnecting room…');
+ N.rcT=setTimeout(()=>{N.rcT=0;if(S.net!==N||N.left)return;try{if(force&&!N.peer.disconnected)N.peer.disconnect();N.peer.reconnect()}catch(e){}N.retry=(N.retry||0)+1;setTimeout(()=>{if(S.net===N&&N.peer.disconnected&&!N.peer.destroyed)hostReconnect(N)},4000)},force?150:Math.min(4000,600+(N.retry||0)*800))}
+// iOS freezes the page when you switch to Messages: re-register the same room code as soon as we're back
+let netHid=0;function netResume(){const N=S.net;if(!N||!N.host||N.left||!N.peer||N.peer.destroyed)return;const away=netHid?Date.now()-netHid:0;netHid=0;const ws=N.peer.socket&&N.peer.socket._socket;if(N.peer.disconnected||!ws||ws.readyState!==1||away>2500)hostReconnect(N,true)}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)netHid=Date.now();else netResume()});addEventListener('pageshow',netResume);addEventListener('focus',netResume);
+setInterval(()=>{const N=S.net;if(N&&N.host&&!N.left&&N.peer&&!N.peer.destroyed&&N.peer.disconnected&&!N.rcT)hostReconnect(N)},5000);
 function netHostRx(c,m){const N=S.net;if(!N||!m)return;(N.seen||(N.seen={}))[c.peer]=Date.now();if(m.t==='hb')return;
- if(m.t==='hi'){if(N.started){c.on('open',()=>{});c.send({t:'no',why:'That round already started.'});setTimeout(()=>c.close(),500);return}if(N.list.length>=4){c.send({t:'no',why:'Room is full (4 max).'});setTimeout(()=>c.close(),500);return}
+ if(m.t==='hi'){if(m.v!==NPROTO){c.send({t:'no',up:1,why:(m.v||0)<NPROTO?'Update the game: close it fully and reopen it, then join again.':'The host needs to update: close the game fully and reopen it, then make a new room.'});setTimeout(()=>c.close(),800);return}if(N.started){c.on('open',()=>{});c.send({t:'no',why:'That round already started.'});setTimeout(()=>c.close(),500);return}if(N.list.length>=4){c.send({t:'no',why:'Room is full (4 max).'});setTimeout(()=>c.close(),500);return}
   N.conns.set(c.peer,c);N.list.push({id:c.peer,c:cleanC(m.c||{},m.c||{})});SFX.honk();netBroad();return}
  if(m.t==='done'){N.sc[c.peer]=N.sc[c.peer]||[];N.sc[c.peer][m.hole]=m.s;N.done[c.peer]=m.hole;netCheck();return}
  if(m.t==='rdy'){raceHostRdy(c.peer,m.h);return}if(m.t==='rfin'){raceHostFin(c.peer,m.h,m.k,m.s);return}
  if(m.t==='pos'){netSend({...m,id:c.peer},c.peer);ghost(c.peer,m)}if(m.t==='ev'){netSend({...m,id:c.peer},c.peer);remoteEv(c.peer,m)}}
-function netBroad(){const N=S.net;netSend({t:'roster',list:N.list,ci:N.ci,sc:N.sc,mode:N.mode});netRoster()}
+function netBroad(){const N=S.net;netSend({t:'roster',v:NPROTO,list:N.list,ci:N.ci,sc:N.sc,mode:N.mode});netRoster()}
 function netDrop(id){const N=S.net;if(!N||!N.host||!N.conns.has(id))return;const p=N.list.find(q=>q.id===id);N.conns.delete(id);N.list=N.list.filter(q=>q.id!==id);ghostRm(id);if(p){toast(`📡 ${p.c.name} left the room`,true,1600)}netBroad();if(N.started){netCheck();raceHostCheck()}}
-function netJoin(code){code=(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(code.length!==5){netMsg('Room codes are 5 letters.');return}
+function netNorm(c){return String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/0/g,'O').replace(/1/g,'I')}
+function netJoin(code){code=netNorm(code);if(code.length!==5){netMsg('Room codes are 5 letters.');return}
  const peer=new Peer({debug:0});const N=S.net={host:0,peer,code,ci:0,list:[],sc:{},started:0};$('lbCode').textContent=code;
- const fail=t=>{if(S.net===N){netMsg(t)}};const to=setTimeout(()=>{if(!N.me)fail('No room found with that code. Check it with the host.')},12000);
- peer.on('open',id=>{const c=peer.connect(NETP+code,{reliable:true});N.conn=c;
-  c.on('open',()=>{N.me=id;clearTimeout(to);c.send({t:'hi',c:cleanC(cChar)});netMsg('Joined! Waiting for the host to start…')});
-  c.on('data',m=>netClientRx(m));c.on('close',()=>netLost())});
- peer.on('error',e=>{if(e.type==='peer-unavailable'){clearTimeout(to);fail('No room found with that code. Check it with the host.')}else fail('Online error: '+e.type)})}
+ const fail=t=>{if(S.net===N&&!N.me){netMsg(t);clearTimeout(N.to)}};let tries=0,miss=0;
+ const attempt=()=>{if(S.net!==N||N.me||N.rejected)return;tries++;if(tries>1)netMsg(`Looking for room ${code}… (try ${tries}/4)`);
+  const c=peer.connect(NETP+code,{reliable:true});N.conn=c;
+  c.on('open',()=>{if(N.me)return;N.me=peer.id;clearTimeout(N.to);N.conn=c;c.send({t:'hi',v:NPROTO,c:cleanC(cChar)});netMsg('Joined! Waiting for the host to start…')});
+  c.on('data',m=>{if(c===N.conn)netClientRx(m)});c.on('close',()=>{if(c===N.conn&&N.me)netLost()});
+  c.on('iceStateChanged',st=>{if(st==='failed'&&!N.me)fail("Found the room but couldn't connect. Try Wi-Fi on both phones (or both on mobile data), then try again.")})};
+ const next=()=>{if(tries<4)setTimeout(attempt,tries?2500:0);else fail('No room found with that code. Check the code, and make sure the host has the game open on the lobby screen.')};
+ N.to=setTimeout(()=>fail(miss>=tries?'No room found with that code. Make sure the host has the game open on the lobby screen.':"Found the room but couldn't connect. Try Wi-Fi on both phones (or both on mobile data), then try again."),22000);
+ peer.on('open',()=>next());
+ peer.on('error',e=>{if(S.net!==N)return;if(e.type==='peer-unavailable'){miss++;if(!N.me)next()}else if(!N.me)fail('Online error: '+e.type+'. Check your connection and try again.')})}
 function netClientRx(m){const N=S.net;if(!N||!m)return;N.seenH=Date.now();if(m.t==='hb')return;
- if(m.t==='no'){N.rejected=1;netMsg(m.why);return}
- if(m.t==='roster'){N.list=m.list;N.ci=m.ci;N.sc=m.sc||N.sc;N.mode=m.mode||'classic';for(const id of Object.keys(S.remotes||{}))if(!N.list.some(p=>p.id===id))ghostRm(id);if(S.mode==='lobby')netRoster();return}
+ if(m.t==='no'){N.rejected=1;clearTimeout(N.to);netMsg(m.why);return}
+ if(m.t==='roster'){if(m.v!==NPROTO){N.rejected=1;netMsg('The host needs to update: close the game fully and reopen it, then make a new room.');try{N.peer.destroy()}catch(e){}return}N.list=m.list;N.ci=m.ci;N.sc=m.sc||N.sc;N.mode=m.mode||'classic';for(const id of Object.keys(S.remotes||{}))if(!N.list.some(p=>p.id===id))ghostRm(id);if(S.mode==='lobby')netRoster();return}
  if(m.t==='start'){N.list=m.list;N.ci=m.ci;N.mode=m.mode||'classic';netStart();return}
  if(m.t==='rgo'){raceGo(m.h,m.d);return}if(m.t==='rpl'){raceGotPl(m);return}if(m.t==='rend'){raceEnd(m);return}
  if(m.t==='next'){N.sc=m.sc;netNext(m.hole);return}
@@ -1068,11 +1081,11 @@ function netTick(dt){const N=S.net;if(!N||!N.started)return;const t=performance.
 $('bOnline').onclick=()=>{SFX.click();screen('online');S.mode='online'};
 $('bOnBack').onclick=()=>{SFX.click();S.mode='title';screen('title')};
 $('bHost').onclick=()=>{SFX.click();S.netIntent='host';buildCourses();screen('courses')};
-$('bJoin').onclick=()=>{SFX.click();const c=$('joinCode').value.toUpperCase().replace(/[^A-Z0-9]/g,'');if(c.length!==5){SFX.bad();toast('Room codes are 5 letters',true,1300);return}S.netIntent='join';S.netCode=c;startCreator(1)};
+$('bJoin').onclick=()=>{SFX.click();const c=netNorm($('joinCode').value);if(c.length!==5){SFX.bad();toast('Room codes are 5 letters',true,1300);return}S.netIntent='join';S.netCode=c;startCreator(1)};
 $('bLbStart').onclick=()=>{const N=S.net;if(!N||!N.host||N.list.length<2)return;SFX.click();netSend({t:'start',list:N.list,ci:N.ci,mode:N.mode});netStart()};
 $('bLbLeave').onclick=()=>{SFX.click();netLeave();S.mode='title';screen('title')};
 $('bShare').onclick=()=>{const N=S.net;if(!N||!N.url&&N.host)return;const url=N.url||(location.origin+location.pathname+'?room='+N.code),txt=`Join my Tipsy Tee room ${N.code}: ${url}`;if(navigator.share)navigator.share({title:'Tipsy Tee',text:txt,url}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(url).then(()=>toast('Invite link copied 📋',true,1200)).catch(()=>{})};
-{const rq=new URLSearchParams(location.search).get('room');if(rq){setTimeout(()=>{$('joinCode').value=rq.toUpperCase().slice(0,5);screen('online');S.mode='online'},400)}}
+{const rq=new URLSearchParams(location.search).get('room');if(rq){setTimeout(()=>{$('joinCode').value=netNorm(rq).slice(0,5);screen('online');S.mode='online'},400)}}
 
 window.__TT=S;window.__TTapi={get remotes(){return S.remotes},blackoutCheck,netCheck,cardPlayers,get net(){return S.net},barPos,camera,snapCam,holeDist,playReel,awardTrophies,DARES,dareNow,barTap,CLUBS,react,startReplay,duckRescue,maybeReplay,cartPathBlocked,get hills(){return hills},get trees(){return trees},scene,simEnd,surface,COURSES,buildHole,P,get course(){return course},shoot,launch,drink,DRINKS,setClub,holed,finishHole,showCard,addCoins,grant,setCourse,calcHint,startCart,honk,buildShop,buildCourses,coins};
 })();
