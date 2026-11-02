@@ -181,7 +181,7 @@ function makeGolfer(c){
  const grip=mesh(G.cyl,dark,0,-.05,0,club);grip.scale.set(.025,.16,.025);
  const shaftL=hipY+.5*sy-armL.position.y;const shaft=mesh(G.cyl,MC(0xcccccc),0,-.42,0,club);shaft.scale.set(.016,.75,.016);
  const chead=mesh(G.box,MC(0x444444),.06,-.8,0,club);chead.scale.set(.16,.07,.09);
- {const k=EQ().club;const CS={gold:[0xd4af37,0xffd700],wood:[0x8b5a2b,0x5a3416],neon:[0x39ff14,0xff2bd6],candy:[0xff3030,0xffffff]}[k];if(CS){shaft.material=k==='neon'?new THREE.MeshBasicMaterial({color:CS[0]}):M(CS[0],k==='gold'?{emissive:0x332200}:{});chead.material=k==='neon'?new THREE.MeshBasicMaterial({color:CS[1]}):M(CS[1])}}
+ {const k=(c.club||EQ().club);const CS={gold:[0xd4af37,0xffd700],wood:[0x8b5a2b,0x5a3416],neon:[0x39ff14,0xff2bd6],candy:[0xff3030,0xffffff]}[k];if(CS){shaft.material=k==='neon'?new THREE.MeshBasicMaterial({color:CS[0]}):M(CS[0],k==='gold'?{emissive:0x332200}:{});chead.material=k==='neon'?new THREE.MeshBasicMaterial({color:CS[1]}):M(CS[1])}}
  const can=new THREE.Group();can.position.set(0,-armLen-.05,.04);armR.add(can);can.visible=false;
  const canM=M(0xd0d0d0);mesh(G.cyl,canM,0,0,0,can).scale.set(.07,.18,.07);
  root.userData={body,head,legs,armL,armR,swing,club,can,canM,hat,eyes,lids,cheeks,mouthG,c,armLen};
@@ -406,7 +406,7 @@ const RLINES=["Oh no. Oh no no no.","Folks, that is NOT how you play golf.","He'
 const cine=document.createElement('div');cine.id='cine';cine.innerHTML='<div class="rbadge">● REPLAY</div><div class="rcap"></div><div class="rskip">tap to skip</div>';document.body.appendChild(cine);
 cine.addEventListener('pointerdown',e=>{e.preventDefault();if(S.rp)S.rp.t=9;if(S.dk)S.dk.t=9;if(S.bo)S.bo.t=Math.max(S.bo.t,3.4)});
 function cineShow(cap,badge){cine.querySelector('.rcap').textContent=cap;cine.querySelector('.rbadge').style.display=badge?'':'none';cine.style.display='block'}
-function react(kind){const p=P();if(!p||!S.golfer)return;const d=p.drunk;if(kind==='bad'&&d>.6)kind='throw';S.react={kind,t:0,d};if(kind==='throw')throwClub()}
+function react(kind){const p=P();if(!p||!S.golfer)return;if(kind==='good'||kind==='bad')netEv(kind);const d=p.drunk;if(kind==='bad'&&d>.6)kind='throw';S.react={kind,t:0,d};if(kind==='throw')throwClub()}
 function throwClub(){const u=S.golfer.userData;if(S.clubFly)return;const m=u.club.clone();m.scale.multiplyScalar(1.8);const wp=new V3();u.club.getWorldPosition(wp);m.position.copy(wp).setY(1.4);const f=dirV(S.aim);S.clubFly={m,t:0,v:new V3(f.x*rand(6,9)+rand(-3,3),15,f.z*rand(6,9)+rand(-3,3)),o:wp.clone()};toast('🏌️💨 YEET!',true,1300);scene.add(m);setTimeout(()=>SFX.swing(),100)}
 function maybeReplay(kind){S.dis=(S.dis||0)+1;if(S.clips&&S.rec&&S.rec.length>=10&&!S.reelOn){S.clips.push({kind,hole:S.hole,name:P().c.name,pts:S.rec.slice(-80).map(v=>v.clone()),sev:({water:2,oob:2,shank:1}[kind]||1)+(kind==='water'&&S.waterN>=3?2:0)+Math.random()*.5})}if(!S.rec||S.rec.length<10)return false;if(S.forceReplay)return true;return S.dis>1&&S.hole-(S.lastReplay??-9)>=3&&Math.random()<.35}
 function startReplay(kind,then){S.lastReplay=S.hole;S.replays=(S.replays||0)+1;const pts=S.rec.slice(-80);S.rp={pts,t:0,dur:Math.min(2.8,pts.length/30),then,cur:pts[0].clone()};S.phase='replay';
@@ -489,7 +489,7 @@ function buildShelf(){const sh=LS.get('trophies',{});$('tList').innerHTML=TROPHI
 function playReel(){const cl=[...S.clips].sort((a,b)=>b.sev-a.sev).slice(0,3);let i=0;S.reelOn=1;const last=S.hole;$('top').style.visibility='hidden';$('bottom').style.visibility='hidden';
  const next=()=>{if(i>=cl.length){S.reelOn=0;S.rp=null;S.cineCam=null;cine.style.display='none';S.hole=last;$('top').style.visibility='';$('bottom').style.visibility='';S.mode='card';screen('card');return}const c=cl[i++];S.mode='play';screen('hud');buildHole(c.hole);S.rec=c.pts;ball.visible=true;if(S.golfer)S.golfer.visible=false;startReplay(c.kind,next);const tag={water:'💦',oob:'🚫',shank:'🙈'}[c.kind]||'💥';cineShow(`🎬 ${i}/${cl.length} · Hole ${c.hole+1} · ${c.name}: ${tag} ${c.sev>=4?'The duck kept it.':RLINES[Math.floor(Math.random()*RLINES.length)]}`,1)};next()}
 function startRound(){S.trDone=0;S.pbDone=0;S.trophyHtml='';S.hole=0;S.paid=0;S.roundCoins=0;S.cur=0;for(const p of S.players){p.scores=[];p.style=0;p.bb=0;p.st={ducks:0,water:0,shanks:0,stolen:0,bo3:0,maxB:0,drinks:0,dares:0}}S.clips=[];S.reelOn=0;S.waterN=0;S.dis=0;S.lastReplay=-9;S.replays=0;S.boDone=0;S.bo=null;startTurn()}
-function startTurn(){cineClear();S.waterN=0;const p=P();p.hd={d:new Set()};S.barUsed=0;S.barFree=0;buildHole(S.hole);p.strokes=0;if(S.hole>0){p.drunk=Math.max(0,p.drunk-.05)}
+function startTurn(){cineClear();if(S.remotes)remoteClear();S.waterN=0;const p=P();p.hd={d:new Set()};S.barUsed=0;S.barFree=0;buildHole(S.hole);p.strokes=0;if(S.hole>0){p.drunk=Math.max(0,p.drunk-.05)}
  S.ballP.set(0,.35,0);S.ballV.set(0,0,0);S.lastP.copy(S.ballP);S.phase='aim';S.effects={};
  if(S.golfer&&S.golfer.parent)S.golfer.parent.remove(S.golfer);S.golfer=makeGolfer(p.c);scene.add(S.golfer);
  setClub(0);if(course.par===3&&holeDist()<170)setClub(2);aimAtPin();snapCam();calcHint();
@@ -597,7 +597,7 @@ function penalty(kind){const p=P();p.strokes++;if(p.st&&kind==='water'){p.st.wat
  setTimeout(()=>{if(maybeReplay(kind))startReplay(kind,go);else go()},900)}
 const DARES=[{t:'Finish this hole on Tequila 🌵',ok:(p)=>p.hd.d.has('tequila')},{t:'Putt it in above 70% Buzz',ok:(p)=>(S.shotClub||{}).id==='putter'&&p.drunk>=.7},{t:'Use the Keg Stand 🛢️',ok:(p)=>p.hd.d.has('keg')},{t:'Mix it up: 2 different drinks',ok:(p)=>p.hd.d.size>=2},{t:'Par or better at 40%+ Buzz',ok:(p,rel)=>rel<=0&&p.drunk>=.4},{t:'Sink it after a Jäger Bomb 💣',ok:(p)=>p.hd.d.has('jager')},{t:'Voddy Orange 🍊 then par or better',ok:(p,rel)=>rel<=0&&(p.hd.d.has('vo1')||p.hd.d.has('vo2'))}];
 function dareNow(){return DARES[(S.hole*3+CI*5)%DARES.length]}
-function holed(){const p=P();{const rel0=p.strokes-course.par;if(p.hd&&dareNow().ok(p,rel0)){p.st.dares++;setTimeout(()=>{addCoins(20);SFX.coin();toast('🎯 DARE COMPLETE!\n+20 🪙');burst(new V3(course.pin[0],1,course.pin[1]),40,[0xffd23f,0xff5fd2],8,.3,10,2)},1500)}}S.celebT=0;SFX.cup();S.phase='holed';ball.visible=false;buzz([50,30,50,30,120]);
+function holed(){const p=P();netEv('holed');{const rel0=p.strokes-course.par;if(p.hd&&dareNow().ok(p,rel0)){p.st.dares++;setTimeout(()=>{addCoins(20);SFX.coin();toast('🎯 DARE COMPLETE!\n+20 🪙');burst(new V3(course.pin[0],1,course.pin[1]),40,[0xffd23f,0xff5fd2],8,.3,10,2)},1500)}}S.celebT=0;SFX.cup();S.phase='holed';ball.visible=false;buzz([50,30,50,30,120]);
  const rel=p.strokes-course.par;const nm=p.strokes===1?'HOLE IN ONE!!!':{'-3':'ALBATROSS!','-2':'EAGLE!','-1':'BIRDIE!','0':'PAR','1':'Bogey','2':'Double Bogey'}[rel]||`+${rel}… yikes`;
  if(p.strokes===1){p.style+=1000;SFX.fanfare();for(let k=0;k<4;k++)setTimeout(()=>burst(new V3(course.pin[0],1,course.pin[1]),60,[0xff3030,0xffd23f,0x3ccf6e,0x1fa3ff,0xff5fd2],10,.4,14,2.5),k*300);S.shake=1.2;toast('⛳ HOLE IN ONE!!! ⛳\n+1000 style')}
  else{toast(nm);if(rel<0){SFX.fanfare();p.style+=200*-rel;burst(new V3(course.pin[0],1,course.pin[1]),50,[0xff3030,0xffd23f,0x3ccf6e,0x1fa3ff],8,.35,10,2)}else SFX.cheer()}
@@ -944,7 +944,7 @@ window.__MUS=MUS;window.__setMusic=setMusic;$('bTroph').onclick=()=>{SFX.click()
 const NETP='tipsytee-room-',NCH='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 function loadPeer(){return window.Peer?Promise.resolve():new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='peerjs.min.js';sc.onload=ok;sc.onerror=()=>no(new Error('load'));document.head.appendChild(sc)})}
 function netCode(){let s='';for(let i=0;i<5;i++)s+=NCH[Math.floor(Math.random()*NCH.length)];return s}
-function cleanC(c){return{name:String(c.name||'Golfer').slice(0,12),shirt:c.shirt,pants:c.pants,skin:c.skin,hat:c.hat,hair:c.hair,acc:c.acc}}
+function cleanC(c,e){const o={name:String(c.name||'Golfer').slice(0,12)};for(const k of['body','face','glasses','hair','hairC','hat','hatC','pants','shirt','skin','stache'])if(c[k]!==undefined)o[k]=c[k];e=e||EQ();o.club=String(e.club||'std').slice(0,16);o.ball=String(e.ball||'white').slice(0,16);o.trail=String(e.trail||'white').slice(0,16);return o}
 function netMsg(t){$('lbMsg').textContent=t}
 function netSend(m,except){const N=S.net;if(!N)return;if(N.host){for(const[id,c]of N.conns)if(id!==except&&c.open)c.send(m)}else if(N.conn&&N.conn.open)N.conn.send(m)}
 function netRoster(){const N=S.net;$('lbList').innerHTML=N.list.map((p,i)=>`<div class="lbp"><span style="color:${p.c.shirt}">●</span> ${esc(p.c.name)}${i===0?' 👑':''}${p.id===N.me?' (you)':''}</div>`).join('')+(N.list.length<4?`<div class="lbp dim">${4-N.list.length} open seat${N.list.length<3?'s':''}…</div>`:'');
@@ -959,9 +959,9 @@ function netHost(tries){const code=netCode(),peer=new Peer(NETP+code,{debug:0});
  peer.on('connection',c=>{c.on('data',m=>netHostRx(c,m));c.on('close',()=>netDrop(c.peer));c.on('error',()=>netDrop(c.peer))})}
 function netHostRx(c,m){const N=S.net;if(!N||!m)return;(N.seen||(N.seen={}))[c.peer]=Date.now();if(m.t==='hb')return;
  if(m.t==='hi'){if(N.started){c.on('open',()=>{});c.send({t:'no',why:'That round already started.'});setTimeout(()=>c.close(),500);return}if(N.list.length>=4){c.send({t:'no',why:'Room is full (4 max).'});setTimeout(()=>c.close(),500);return}
-  N.conns.set(c.peer,c);N.list.push({id:c.peer,c:cleanC(m.c||{})});SFX.honk();netBroad();return}
+  N.conns.set(c.peer,c);N.list.push({id:c.peer,c:cleanC(m.c||{},m.c||{})});SFX.honk();netBroad();return}
  if(m.t==='done'){N.sc[c.peer]=N.sc[c.peer]||[];N.sc[c.peer][m.hole]=m.s;N.done[c.peer]=m.hole;netCheck();return}
- if(m.t==='pos'){netSend({t:'pos',id:c.peer,x:m.x,z:m.z,h:m.h},c.peer);ghost(c.peer,m)}}
+ if(m.t==='pos'){netSend({...m,id:c.peer},c.peer);ghost(c.peer,m)}if(m.t==='ev'){netSend({...m,id:c.peer},c.peer);remoteEv(c.peer,m)}}
 function netBroad(){const N=S.net;netSend({t:'roster',list:N.list,ci:N.ci,sc:N.sc});netRoster()}
 function netDrop(id){const N=S.net;if(!N||!N.host||!N.conns.has(id))return;const p=N.list.find(q=>q.id===id);N.conns.delete(id);N.list=N.list.filter(q=>q.id!==id);ghostRm(id);if(p){toast(`📡 ${p.c.name} left the room`,true,1600)}netBroad();if(N.started)netCheck()}
 function netJoin(code){code=(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(code.length!==5){netMsg('Room codes are 5 letters.');return}
@@ -973,10 +973,10 @@ function netJoin(code){code=(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if
  peer.on('error',e=>{if(e.type==='peer-unavailable'){clearTimeout(to);fail('No room found with that code. Check it with the host.')}else fail('Online error: '+e.type)})}
 function netClientRx(m){const N=S.net;if(!N||!m)return;N.seenH=Date.now();if(m.t==='hb')return;
  if(m.t==='no'){N.rejected=1;netMsg(m.why);return}
- if(m.t==='roster'){N.list=m.list;N.ci=m.ci;N.sc=m.sc||N.sc;for(const id of Object.keys(S.ghosts||{}))if(!N.list.some(p=>p.id===id))ghostRm(id);if(S.mode==='lobby')netRoster();return}
+ if(m.t==='roster'){N.list=m.list;N.ci=m.ci;N.sc=m.sc||N.sc;for(const id of Object.keys(S.remotes||{}))if(!N.list.some(p=>p.id===id))ghostRm(id);if(S.mode==='lobby')netRoster();return}
  if(m.t==='start'){N.list=m.list;N.ci=m.ci;netStart();return}
  if(m.t==='next'){N.sc=m.sc;netNext(m.hole);return}
- if(m.t==='pos'){ghost(m.id,m)}}
+ if(m.t==='pos'){ghost(m.id,m)}if(m.t==='ev'&&m.id!==N.me)remoteEv(m.id,m)}
 function netLost(){const N=S.net;if(!N||N.left)return;if(N.rejected){return}if(!N.started){netMsg('Lost connection to the host.');return}
  toast('📡 Host disconnected — finishing this round solo',true,2600);S.net=null;ghostClear();if(S.waitNet){S.waitNet=0;$('netWait').style.display='none';soloAdvance()}}
 function netLeave(){const N=S.net;if(!N)return;N.left=1;S.net=null;S.waitNet=0;$('netWait').style.display='none';ghostClear();try{N.peer.destroy()}catch(e){}}
@@ -988,12 +988,41 @@ function netNext(h){const N=S.net;if(!S.waitNet&&!N.host)return;S.waitNet=0;$('n
 function soloAdvance(){S.cur=0;showCard(true)}
 function cardPlayers(){const N=S.net;if(!N||!N.started)return S.players;return N.list.map(q=>q.id===N.me?S.players[0]:{remote:1,c:q.c,scores:N.sc[q.id]||[],style:0,bb:0})}
 setInterval(()=>{const N=S.net;if(!N||N.left)return;const now=Date.now();if(N.host){netSend({t:'hb'});for(const id of [...N.conns.keys()])if(now-((N.seen||{})[id]||now)>9000){try{N.conns.get(id).close()}catch(e){}netDrop(id)}}else if(N.me){netSend({t:'hb'});if(now-(N.seenH||now)>10000){try{N.conn.close()}catch(e){}netLost()}}},2000);
-// ghosts: other players' balls on the same hole
-S.ghosts={};S.posT=0;
-function ghost(id,m){const N=S.net;if(!N)return;const q=N.list.find(p=>p.id===id);if(!q)return;let g=S.ghosts[id];if(!g){g=new THREE.Mesh(new THREE.SphereGeometry(.45,12,8),new THREE.MeshBasicMaterial({color:new THREE.Color(q.c.shirt||'#fff'),transparent:true,opacity:.75}));scene.add(g);S.ghosts[id]=g}g.visible=m.h===S.hole&&S.mode==='play'&&Math.hypot(m.x-S.ballP.x,m.z-S.ballP.z)>1.2;g.position.set(m.x,.45,m.z)}
-function ghostRm(id){const g=S.ghosts[id];if(g){scene.remove(g);delete S.ghosts[id]}}
-function ghostClear(){for(const id of Object.keys(S.ghosts))ghostRm(id)}
-function netTick(dt){const N=S.net;if(!N||!N.started)return;S.posT-=dt;if(S.posT<=0&&S.mode==='play'){S.posT=.25;const m={t:'pos',x:+S.ballP.x.toFixed(2),z:+S.ballP.z.toFixed(2),h:S.hole};if(N.host){netSend({...m,id:'host'})}else netSend(m)}for(const g of Object.values(S.ghosts))if(S.mode!=='play')g.visible=false}
+// remote golfers: full avatars for other players in a room
+const BSK={white:[0xffffff,0x333333],gold:[0xffd700,0x664400],neon:[0x7dff4a,0x33aa00],eye:[0xffffff,0x333333],disco:[0xdddddd,0x444444]},TRC={white:0xffffff,fire:0xff7a1a,rainbow:0xff2bd6,bubbles:0xffd23f};
+S.remotes={};
+function nameTag(txt,col){const cv=document.createElement('canvas');cv.width=256;cv.height=64;const x=cv.getContext('2d');x.font='900 34px system-ui,sans-serif';x.textAlign='center';x.textBaseline='middle';x.lineWidth=7;x.strokeStyle='rgba(0,0,0,.75)';x.strokeText(txt,128,34);x.fillStyle=col||'#fff';x.fillText(txt,128,34);const tx=new THREE.CanvasTexture(cv);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,transparent:true,depthWrite:false}));sp.scale.set(3.2,.8,1);return sp}
+function remoteGet(id){let R=S.remotes[id];if(R)return R;const N=S.net;const q=N&&N.list.find(p=>p.id===id);if(!q)return null;const c=q.c;
+ const g=makeGolfer(c);g.userData.remote=1;const mats=[];g.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.castShadow=false;mats.push([o.material,o.material.opacity])}});
+ const tag=nameTag(c.name,c.shirt);tag.position.y=3.3;g.add(tag);
+ const sk=BSK[c.ball]||BSK.white,bl=new THREE.Mesh(ball.geometry,M(sk[0],{emissive:sk[1]}));bl.castShadow=false;
+ const tn=24,tg=new THREE.BufferGeometry();tg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(tn*3),3));const tr=new THREE.Line(tg,new THREE.LineBasicMaterial({color:TRC[c.trail]||0xffffff,transparent:true,opacity:.7}));tr.frustumCulled=false;
+ scene.add(g);scene.add(bl);scene.add(tr);
+ R=S.remotes[id]={id,c,g,tag,bl,tr,tn,pts:[],mats,cur:new V3(0,.35,0),tgt:new V3(0,.35,0),h:-1,d:0,f:0,sw:-1,re:null,holed:0,ht:0,alpha:1,shotP:new V3(),name:c.name};return R}
+function remoteRm(id){const R=S.remotes[id];if(!R)return;scene.remove(R.g);scene.remove(R.bl);scene.remove(R.tr);R.tr.geometry.dispose();R.tag.material.map.dispose();R.tag.material.dispose();R.mats.forEach(m=>m[0].dispose());delete S.remotes[id]}
+function remoteClear(){for(const id of Object.keys(S.remotes))remoteRm(id)}
+function remotePos(id,m){const R=remoteGet(id);if(!R)return;if(m.h!==R.h){R.h=m.h;R.holed=0;R.pts=[];R.cur.set(m.x,m.y??.35,m.z)}R.tgt.set(m.x,m.y??.35,m.z);R.d=m.d||0;if(m.f&&!R.f){R.shotP.copy(R.cur);R.pts=[]}R.f=m.f||0}
+function remoteEv(id,m){const R=remoteGet(id);if(!R)return;if(m.h!==undefined&&m.h!==S.hole)return;if(m.k==='swing'){R.sw=.22;R.shotP.copy(R.cur);R.f=1;R.pts=[]}else if(m.k==='holed'){R.holed=1;R.ht=0;R.f=0}else R.re={k:m.k,t:0}}
+function remoteTag(R,txt){if(R.tagTxt===txt)return;R.tagTxt=txt;const sp=nameTag(txt,R.c.shirt);R.tag.material.map.dispose();R.tag.material.map=sp.material.map;sp.material.dispose()}
+function setAlpha(R,a){if(Math.abs(R.alpha-a)<.01)return;R.alpha=a;for(const[m,b]of R.mats){m.opacity=b*a;const tr=a<.99||b<1;if(m.transparent!==tr){m.transparent=tr;m.needsUpdate=true}m.depthWrite=a>.99}}
+function updRemotes(dt,t){const play=S.mode==='play'&&course;const camL=play?S.ballP.clone().sub(camera.position):null;
+ for(const R of Object.values(S.remotes)){const on=play&&R.h===S.hole;R.g.visible=on;R.bl.visible=on&&!R.holed;R.tr.visible=on&&R.f&&R.pts.length>1;if(!on)continue;const u=R.g.userData;
+  R.cur.lerp(R.tgt,1-Math.exp(-dt*(R.f?9:6)));R.bl.position.copy(R.cur);if(R.f){if(R.cur.distanceTo(R.pts[R.pts.length-1]||R.shotP)>.3){R.pts.push(R.cur.clone());if(R.pts.length>R.tn)R.pts.shift()}const tp=R.tr.geometry.attributes.position;for(let i=0;i<R.tn;i++){const q=R.pts[Math.min(i,R.pts.length-1)]||R.cur;tp.setXYZ(i,q.x,q.y,q.z)}tp.needsUpdate=true;if(R.c.trail==='rainbow')R.tr.material.color.setHSL((t*.8)%1,1,.6)}
+  const pin=new V3(course.pin[0],0,course.pin[1]);let base=R.f?R.shotP:R.cur;if(R.holed){const k=Object.keys(S.remotes).indexOf(R.id);base=pin.clone().add(new V3(Math.cos(k*2.1)*2.4,0,Math.sin(k*2.1)*2.4))}
+  const a=Math.atan2(pin.x-base.x,-(pin.z-base.z)),d=dirV(a),r=new V3(-d.z,0,d.x);const gp=R.holed?base:base.clone().addScaledVector(r,-.9);R.g.position.set(gp.x,0,gp.z);R.g.rotation.set(0,R.holed?Math.atan2(-d.x,-d.z)+Math.PI:Math.atan2(r.x,r.z),0);
+  golferMood(R.g,R.d,t+R.id.length,0);
+  if(R.holed){R.ht+=dt;if(R.ht<2.2){animGolfer(u,'celebrate',R.ht,t,R.d);R.g.position.y=Math.abs(Math.sin(R.ht*7))*.3}else animGolfer(u,'idle',0,t,R.d);remoteTag(R,'⛳ '+R.name)}
+  else{remoteTag(R,R.name);if(R.sw>=0){R.sw+=dt;animGolfer(u,'swing',R.sw,t,R.d);if(R.sw>.6)R.sw=-1}else{animGolfer(u,'idle',0,t,R.d);const E=R.re;if(E){E.t+=dt;const k=E.t,f=clamp((1.6-k)*3,0,1);if(k>1.6)R.re=null;else if(E.k==='good'){u.armR.rotation.set(0,0,2.5+Math.sin(k*18)*.35);R.g.position.y=Math.abs(Math.sin(k*9))*.15*f}else{u.head.rotation.x=.5*f;u.armL.rotation.set(-2.5*f,0,-.35);u.armR.rotation.set(-2.5*f,0,.35);R.g.rotation.z=Math.sin(k*6)*.08*f}}
+   if(R.d>.55){R.g.rotation.z+=Math.sin(t*2.3+R.id.length)*.12*(R.d-.5);R.g.position.x+=Math.sin(t*1.7)*.15*R.d}}}
+  // never block your view: fade when near the camera->ball line
+  let al=1;if(camL){const L=camL.length(),v=R.g.position.clone().setY(1).sub(camera.position),s=clamp(v.dot(camL)/L,0,L),dd=v.addScaledVector(camL,-s/L).length();if(dd<3&&s<L+2)al=.3;else if(R.holed&&R.ht>2.2)al=.6}setAlpha(R,al)}}
+
+function ghostRm(id){remoteRm(id)}
+function ghostClear(){remoteClear()}
+function ghost(id,m){if(S.net)remotePos(id,m)}
+function netEv(k){const N=S.net;if(!N||!N.started)return;const m={t:'ev',k,h:S.hole};if(N.host)netSend({...m,id:'host'});else netSend(m)}
+function netTick(dt){const N=S.net;if(!N||!N.started)return;const t=performance.now()/1000;updRemotes(dt,t);const sw=S.swingT>=.22&&S.swingT<.6;if(sw&&!S.swSent){S.swSent=1;netEv('swing')}if(!sw)S.swSent=0;
+ const fly=S.phase==='fly'?1:0;S.posT=(S.posT||0)-dt;if(S.posT<=0&&S.mode==='play'){S.posT=fly?.1:.3;const m={t:'pos',x:+S.ballP.x.toFixed(2),y:+S.ballP.y.toFixed(2),z:+S.ballP.z.toFixed(2),h:S.hole,d:+(P()?P().drunk:0).toFixed(2),f:fly};if(N.host){netSend({...m,id:'host'})}else netSend(m)}}
 $('bOnline').onclick=()=>{SFX.click();screen('online');S.mode='online'};
 $('bOnBack').onclick=()=>{SFX.click();S.mode='title';screen('title')};
 $('bHost').onclick=()=>{SFX.click();S.netIntent='host';buildCourses();screen('courses')};
@@ -1003,5 +1032,5 @@ $('bLbLeave').onclick=()=>{SFX.click();netLeave();S.mode='title';screen('title')
 $('bShare').onclick=()=>{const N=S.net;if(!N||!N.url&&N.host)return;const url=N.url||(location.origin+location.pathname+'?room='+N.code),txt=`Join my Tipsy Tee room ${N.code}: ${url}`;if(navigator.share)navigator.share({title:'Tipsy Tee',text:txt,url}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(url).then(()=>toast('Invite link copied 📋',true,1200)).catch(()=>{})};
 {const rq=new URLSearchParams(location.search).get('room');if(rq){setTimeout(()=>{$('joinCode').value=rq.toUpperCase().slice(0,5);screen('online');S.mode='online'},400)}}
 
-window.__TT=S;window.__TTapi={netCheck,cardPlayers,get net(){return S.net},barPos,camera,snapCam,holeDist,playReel,awardTrophies,DARES,dareNow,barTap,CLUBS,react,startReplay,duckRescue,maybeReplay,cartPathBlocked,get hills(){return hills},get trees(){return trees},scene,simEnd,surface,COURSES,buildHole,P,get course(){return course},shoot,launch,drink,DRINKS,setClub,holed,finishHole,showCard,addCoins,grant,setCourse,calcHint,startCart,honk,buildShop,buildCourses,coins};
+window.__TT=S;window.__TTapi={get remotes(){return S.remotes},netCheck,cardPlayers,get net(){return S.net},barPos,camera,snapCam,holeDist,playReel,awardTrophies,DARES,dareNow,barTap,CLUBS,react,startReplay,duckRescue,maybeReplay,cartPathBlocked,get hills(){return hills},get trees(){return trees},scene,simEnd,surface,COURSES,buildHole,P,get course(){return course},shoot,launch,drink,DRINKS,setClub,holed,finishHole,showCard,addCoins,grant,setCourse,calcHint,startCart,honk,buildShop,buildCourses,coins};
 })();
