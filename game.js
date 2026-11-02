@@ -408,7 +408,8 @@ function startReplay(kind,then){S.lastReplay=S.hole;S.replays=(S.replays||0)+1;c
  const tag={water:'💦 ',oob:'🚫 ',shank:'🙈 '}[kind]||'';cineShow(tag+RLINES[Math.floor(Math.random()*RLINES.length)],1);SFX.bad()}
 function duckRescue(then){const from=S.splashP.clone().setY(0),to=from.clone(),dir=S.lastP.clone().sub(from).setY(0);if(dir.length()<.1)dir.set(1,0,0);dir.normalize();for(let i=0;i<200&&surface(to.x,to.z)==='water';i++)to.addScaledVector(dir,1);to.addScaledVector(dir,-1.2);
  const g=makeDuck();g.scale.setScalar(2.4);mesh(G.sph,0xffffff,0,.78,-.18,g).scale.setScalar(.16);g.position.copy(from).setY(-1);g.rotation.y=Math.atan2(to.x-from.x,to.z-from.z);scene.add(g);S.dk={g,from,to,t:0,dur:2.1,then,q:0};S.phase='duck';cineShow('🦆 Duck delivery! Your ball, sir.',0);SFX.quack()}
-function updCine(dt,t){
+function cineClear(){if(S.dk)scene.remove(S.dk.g);if(S.clubFly)scene.remove(S.clubFly.m);S.rp=S.dk=S.cineCam=S.clubFly=S.react=null;cine.style.display='none'}
+function updCine(dt,t){if(S.mode!=='play'&&(S.rp||S.dk))cineClear();
  if(S.clubFly){const c=S.clubFly;c.t+=dt;c.v.y-=22*dt;c.m.position.addScaledVector(c.v,dt);c.m.rotation.x+=dt*18;c.m.rotation.z+=dt*7;if(c.t>1.2){scene.remove(c.m);if(S.golfer)burst(S.golfer.position.clone().setY(1.2),10,[0xffffff,0xffd23f],3,.2,4);SFX.coin();S.clubFly=null}}
  if(S.rp){const r=S.rp;r.t+=dt;const k=clamp(r.t/r.dur,0,1),f=k*(r.pts.length-1),i=Math.floor(f);r.cur.copy(r.pts[i]).lerp(r.pts[Math.min(i+1,r.pts.length-1)],f-i);
   const a=r.pts[0],b=r.pts[r.pts.length-1],d=b.clone().sub(a).setY(0);if(d.length()<.1)d.set(1,0,0);d.normalize();S.cineCam={p:r.cur.clone().add(new V3(-d.z*12-d.x*4,4,d.x*12-d.z*4)),l:r.cur.clone()};
@@ -468,7 +469,7 @@ $('bQuit').onclick=()=>{if(myCart){myCart.remove(S.golfer);courseG.remove(myCart
 $('bCard').onclick=()=>{showCard(false)};
 // ---------- round flow ----------
 function startRound(){S.hole=0;S.paid=0;S.roundCoins=0;S.cur=0;for(const p of S.players){p.scores=[];p.style=0;p.bb=0}S.dis=0;S.lastReplay=-9;S.replays=0;startTurn()}
-function startTurn(){const p=P();buildHole(S.hole);p.strokes=0;if(S.hole>0){p.drunk=Math.max(0,p.drunk-.12)}
+function startTurn(){cineClear();const p=P();buildHole(S.hole);p.strokes=0;if(S.hole>0){p.drunk=Math.max(0,p.drunk-.12)}
  S.ballP.set(0,.35,0);S.ballV.set(0,0,0);S.lastP.copy(S.ballP);S.phase='aim';S.effects={};
  if(S.golfer&&S.golfer.parent)S.golfer.parent.remove(S.golfer);S.golfer=makeGolfer(p.c);scene.add(S.golfer);
  setClub(0);if(course.par===3&&holeDist()<170)setClub(2);aimAtPin();snapCam();calcHint();
@@ -572,7 +573,7 @@ function holed(){const p=P();S.celebT=0;SFX.cup();S.phase='holed';ball.visible=f
  setTimeout(()=>{if(S.hole<HOLES.length-1)startCart();else finishHole()},2600)}
 function finishHole(){const p=P();p.scores[S.hole]=p.strokes;ball.visible=true;S.phase='done';
  if(S.cur<S.players.length-1){S.cur++;startTurn()}else{S.cur=0;showCard(true)}}
-function showCard(advance){const done=advance&&S.hole===HOLES.length-1;S.mode='card';screen('card');$('cardTitle').textContent=done?'🏆 Final Scorecard':'Scorecard';
+function showCard(advance){cineClear();const done=advance&&S.hole===HOLES.length-1;S.mode='card';screen('card');$('cardTitle').textContent=done?'🏆 Final Scorecard':'Scorecard';
  let h='<table><tr><th>Hole</th>'+HOLES.map((x,i)=>`<th>${i+1}</th>`).join('')+'<th>Tot</th><th>Style</th><th>🍺</th></tr><tr><td>Par</td>'+HOLES.map(x=>`<td>${x.par}</td>`).join('')+`<td>${HOLES.reduce((a,x)=>a+x.par,0)}</td><td></td><td></td></tr>`;
  const res=[];for(const p of S.players){let tot=0,par=0;h+=`<tr><td style="color:${p.c.shirt}">${esc(p.c.name)}</td>`+HOLES.map((x,i)=>{const s=p.scores[i];if(s==null)return'<td>-</td>';tot+=s;par+=x.par;return`<td class="${s<x.par?'under':s>x.par?'over':''}">${s}</td>`}).join('')+`<td><b>${tot}</b> (${tot-par>0?'+':''}${tot-par})</td><td>${p.style}</td><td>${p.bb||0}</td></tr>`;res.push({p,tot,rel:tot-par})}
  h+='</table>';if(done){res.sort((a,b)=>a.tot-b.tot||b.p.style-a.p.style);h+=`<h2>${esc(res[0].p.c.name)} wins! 🍾</h2>`;const cid=COURSES[CI].id,bk='best_'+cid,b=LS.get(bk,null);if(!b||res[0].tot<b.score){LS.set(bk,{score:res[0].tot,rel:res[0].rel,name:res[0].p.c.name});h+='<div>NEW COURSE RECORD! 🏆</div>';SFX.fanfare()}
