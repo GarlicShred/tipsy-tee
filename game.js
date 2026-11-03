@@ -1040,8 +1040,8 @@ function netHostRx(c,m){const N=S.net;if(!N||!m)return;(N.seen||(N.seen={}))[c.p
  if(m.t==='done'){N.sc[c.peer]=N.sc[c.peer]||[];N.sc[c.peer][m.hole]=m.s;N.done[c.peer]=m.hole;netCheck();return}
  if(m.t==='rdy'){raceHostRdy(c.peer,m.h);return}if(m.t==='rfin'){raceHostFin(c.peer,m.h,m.k,m.s);return}
  if(m.t==='pos'){netSend({...m,id:c.peer},c.peer);ghost(c.peer,m)}if(m.t==='ev'){netSend({...m,id:c.peer},c.peer);remoteEv(c.peer,m)}}
-function netBroad(){const N=S.net;netSend({t:'roster',v:NPROTO,list:N.list,ci:N.ci,sc:N.sc,mode:N.mode});netRoster()}
-function netDrop(id){const N=S.net;if(!N||!N.host||!N.conns.has(id))return;const p=N.list.find(q=>q.id===id);N.conns.delete(id);N.list=N.list.filter(q=>q.id!==id);ghostRm(id);if(p){toast(`📡 ${p.c.name} left the room`,true,1600)}netBroad();if(N.started){netCheck();raceHostCheck()}}
+function netBroad(){const N=S.net;netSend({t:'roster',v:NPROTO,list:N.list,gone:N.gone||[],ci:N.ci,sc:N.sc,mode:N.mode});netRoster()}
+function netDrop(id){const N=S.net;if(!N||!N.host||!N.conns.has(id))return;const p=N.list.find(q=>q.id===id);N.conns.delete(id);N.list=N.list.filter(q=>q.id!==id);if(p&&N.started)(N.gone=N.gone||[]).push({...p,left:1});ghostRm(id);if(p){toast(`📡 ${p.c.name} left the room`,true,1600)}netBroad();if(N.started){netCheck();raceHostCheck()}}
 function netNorm(c){return String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/0/g,'O').replace(/1/g,'I')}
 function netJoin(code){code=netNorm(code);if(code.length!==5){netMsg('Room codes are 5 letters.');return}
  const peer=new Peer(PCFG);const N=S.net={host:0,peer,code,ci:0,list:[],sc:{},started:0};$('lbCode').textContent=code;
@@ -1062,7 +1062,7 @@ function netJoin(code){code=netNorm(code);if(code.length!==5){netMsg('Room codes
  peer.on('error',e=>{if(S.net!==N)return;if(e.type==='peer-unavailable'){miss++;if(N.seenR)useRelay();else if(!N.me)next()}else if(!N.me)fail('Online error: '+e.type+'. Check your connection and try again.')})}
 function netClientRx(m){const N=S.net;if(!N||!m)return;N.seenH=Date.now();if(m.t==='hb')return;
  if(m.t==='no'){N.rejected=1;clearTimeout(N.to);netMsg(m.why);return}
- if(m.t==='roster'){if(m.v!==NPROTO){N.rejected=1;netMsg('The host needs to update: close the game fully and reopen it, then make a new room.');try{N.peer.destroy()}catch(e){}return}N.list=m.list;N.ci=m.ci;N.sc=m.sc||N.sc;N.mode=m.mode||'classic';for(const id of Object.keys(S.remotes||{}))if(!N.list.some(p=>p.id===id))ghostRm(id);if(S.mode==='lobby')netRoster();return}
+ if(m.t==='roster'){if(m.v!==NPROTO){N.rejected=1;netMsg('The host needs to update: close the game fully and reopen it, then make a new room.');try{N.peer.destroy()}catch(e){}return}N.list=m.list;N.gone=m.gone||N.gone;N.ci=m.ci;N.sc=m.sc||N.sc;N.mode=m.mode||'classic';for(const id of Object.keys(S.remotes||{}))if(!N.list.some(p=>p.id===id))ghostRm(id);if(S.mode==='lobby')netRoster();return}
  if(m.t==='start'){N.list=m.list;N.ci=m.ci;N.mode=m.mode||'classic';netStart();return}
  if(m.t==='rgo'){raceGo(m.h,m.d);return}if(m.t==='rpl'){raceGotPl(m);return}if(m.t==='rend'){raceEnd(m);return}
  if(m.t==='next'){N.sc=m.sc;netNext(m.hole);return}
@@ -1070,7 +1070,7 @@ function netClientRx(m){const N=S.net;if(!N||!m)return;N.seenH=Date.now();if(m.t
 function netLost(){const N=S.net;if(!N||N.left)return;if(N.rejected){return}if(!N.started){netMsg('Lost connection to the host.');return}
  toast('📡 Host left. Finishing solo',true,2600);S.net=null;raceOff();ghostClear();if(S.waitNet){S.waitNet=0;$('netWait').style.display='none';soloAdvance()}}
 function netLeave(){const N=S.net;raceOff();if(!N)return;N.left=1;S.net=null;S.waitNet=0;$('netWait').style.display='none';ghostClear();try{if(N.conn&&N.conn.relay)N.conn.close()}catch(e){}setTimeout(()=>{try{N.peer.destroy()}catch(e){}},150)}
-function netStart(){const N=S.net;N.started=1;N.sc={};N.done={};S.race=N.mode==='race'?1:0;N.pts={};N.rdy={};N.rh={};S.raceWin=0;setCourse(N.ci);S.players=[{c:cChar,g:null,drunk:0,peak:0,hang:0,scores:[],style:0,strokes:0,steady:0,boost:0}];startRound()}
+function netStart(){const N=S.net;N.started=1;N.gone=[];N.sc={};N.done={};S.race=N.mode==='race'?1:0;N.pts={};N.rdy={};N.rh={};S.raceWin=0;setCourse(N.ci);S.players=[{c:cChar,g:null,drunk:0,peak:0,hang:0,scores:[],style:0,strokes:0,steady:0,boost:0}];startRound()}
 function netFinish(p){const N=S.net;S.waitNet=1;const w=$('netWait');w.style.display='flex';netWaitTxt();if(N.host){N.sc.host=N.sc.host||[];N.sc.host[S.hole]=p.strokes;N.done.host=S.hole;netCheck()}else netSend({t:'done',hole:S.hole,s:p.strokes})}
 function netWaitTxt(){const N=S.net;if(!N)return;const wait=N.list.filter(q=>q.id!==N.me&&!((N.sc[q.id]||[])[S.hole]!=null)).map(q=>q.c.name);$('netWait').innerHTML=`<div>⛳ Holed out!<br><small>${wait.length?'Waiting for '+wait.map(esc).join(', ')+'…':'Syncing…'}</small></div>`}
 function netCheck(){const N=S.net;if(!N||!N.host)return;const h=S.hole;if(S.waitNet)netWaitTxt();if(!S.waitNet)return;if(N.list.every(q=>(N.sc[q.id]||[])[h]!=null)){netSend({t:'next',hole:h,sc:N.sc});netNext(h)}}
@@ -1109,11 +1109,11 @@ function raceTick(){const r=S.rc;if(!r)return;if(r.phase==='run'){const p=P();if
  if(S.net&&S.net.host)raceHostCheck()}
 function raceEnd(m){const N=S.net;if(!N||!S.rc||S.rc.h!==m.h)return;N.pts=m.pts;N.sc=m.sc;const p=P();S.rc.phase='end';S.rc.ord=m.ord;
  if(S.phase!=='done'){p.scores[S.hole]=p.strokes;S.phase='done';ball.visible=true}if(S.bo){S.bo=null;$('black').style.opacity=0;S.black=0}if(S.cut)endChug();cineClear();raceBig('');$('raceHud').style.display='none';$('netWait').style.display='none';showCard(true)}
-function raceStand(){const N=S.net;return N.list.map(q=>{const pts=N.pts[q.id]||[];return{q,me:q.id===N.me,pts,tot:pts.reduce((a,x)=>a+(x||0),0)}}).sort((a,b)=>b.tot-a.tot)}
+function raceStand(){const N=S.net;return N.list.concat((N.gone||[]).filter(q=>(N.pts[q.id]||[]).some(x=>x))).map(q=>{const pts=N.pts[q.id]||[];return{q,me:q.id===N.me,pts,tot:pts.reduce((a,x)=>a+(x||0),0)}}).sort((a,b)=>b.tot-a.tot)}
 function raceBoard(done){const st=raceStand(),last=(S.rc&&S.rc.ord)||[];let h='';
  if(!done&&last.length)h+='<div class="rRes">'+last.map((o,i)=>`<div><span style="color:${raceName(o.id).shirt}">${o.k==='in'?RMED[i]:'💤'} ${esc(raceName(o.id).name)}</span> ${o.k==='in'?raceTime(o.ms):RTAG[o.k]} · <b>+${o.p||0}</b></div>`).join('')+'</div>';
  if(done){const pod=[st[1],st[0],st[2]];h+='<div class="podium">'+pod.map((x,i)=>x?`<div class="pd pd${[2,1,3][i]}"><div class="pn" style="color:${x.q.c.shirt}">${esc(x.q.c.name)}</div><div class="pb">${['🥈','🥇','🥉'][i]}<br>${x.tot}</div></div>`:'<div class="pd"></div>').join('')+'</div>'+`<h2>${esc(st[0].q.c.name)} wins the Pub Crawl Race! 🏁</h2>`}
- h+='<table><tr><th>🏁</th>'+HOLES.map((x,i)=>`<th>${i+1}</th>`).join('')+'<th>Pts</th></tr>'+st.map(x=>`<tr><td style="color:${x.q.c.shirt}">${esc(x.q.c.name)}${x.me?' (you)':''}</td>`+HOLES.map((_,i)=>`<td>${x.pts[i]==null?'-':x.pts[i]}</td>`).join('')+`<td><b>${x.tot}</b></td></tr>`).join('')+'</table>';return h}
+ h+='<table><tr><th>🏁</th>'+HOLES.map((x,i)=>`<th>${i+1}</th>`).join('')+'<th>Pts</th></tr>'+st.map(x=>`<tr><td style="color:${x.q.c.shirt}">${esc(x.q.c.name)}${x.me?' (you)':x.q.left?' (left)':''}</td>`+HOLES.map((_,i)=>`<td>${x.pts[i]==null?'-':x.pts[i]}</td>`).join('')+`<td><b>${x.tot}</b></td></tr>`).join('')+'</table>';return h}
 
 function soloAdvance(){S.cur=0;showCard(true)}
 function cardPlayers(){const N=S.net;if(!N||!N.started)return S.players;return N.list.map(q=>q.id===N.me?S.players[0]:{remote:1,c:q.c,scores:N.sc[q.id]||[],style:0,bb:0})}
