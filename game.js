@@ -951,12 +951,12 @@ const SC={maj:[0,2,4,5,7,9,11],dor:[0,2,3,5,7,9,10],phr:[0,1,4,5,7,8,10],mix:[0,
 const TRACKS={
  title:{bpm:108,root:55,sc:'maj',style:'ska',ch:[0,5,3,4],lead:'square',mel:['4-.4.2.4-.5.4.2.','0-..2.4.5-.4-2-.','3-.3.5.7-.5.3.2.','4---.2.1.4---...'],alt:'6-.5.4.2-.1.4---'},
  sunny:{bpm:116,root:60,sc:'maj',style:'ska',ch:[0,5,1,4],lead:'square',mel:['4-.4.5.7---.5.4.','2-.2.4.5---.4.2.','3-.5.7.8---.7.5.','6-.4.6.8-.7-6-4-'],alt:'7---.6.4.2---....'},
- frost:{bpm:98,root:62,sc:'dor',style:'bossa',ch:[0,3,6,4],lead:'triangle',mel:['7--5-4--2--4-5--','4--2-0--1--2-4--','6--4-3--2--3-4--','5-----4-2-----..'],alt:'7--8-9--7-----..'},
+ frost:{bpm:98,root:57,sc:'dor',style:'bossa',ch:[0,3,6,4],lead:'sine',mel:['7--5-4--2--4-5--','4--2-0--1--2-4--','6--4-3--2--3-4--','5-----4-2-----..'],alt:'7--8-9--7-----..'},
  dune:{bpm:104,root:52,sc:'phr',style:'bossa',ch:[0,6,5,1],lead:'sawtooth',mel:['0.1.2-4-2.1.0---','6.5.4-2-1.2.4---','5.4.2-1-0.1.2-4-','1-----0-1-2-....'],alt:'4.5.7-5-4.2.1---'},
  night:{bpm:90,root:53,sc:'maj',style:'lounge',ch:[0,5,1,4],lead:'sine',mel:['4--2-4-5--7--5..','2--0-2-4--5--4..','3--1-3-5--8--7..','6---5-4---2-----'],alt:'7---8-7---4-----'},
  volcano:{bpm:122,root:50,sc:'min',style:'tiki',ch:[0,5,3,4],lead:'triangle',mel:['0-.2.3-5-.3.2.0-','5-.7.8-7-.5.3.2-','3-.5.7-8-.7.5.3-','2-.0.2-3-.2.0---'],alt:'7.8.7.5-3-2.0---'},
  cart:{bpm:152,root:57,sc:'min',style:'surf',ch:[0,5,6,4],lead:'sawtooth',mel:['7.7.7.6.7-..4.5.','7.7.7.9.7-..5.4.','2.2.2.4.5-..7.5.','4.4.6.4.2-..1.2.'],alt:'7.9.a.9.7.5.4---'}};
-function musInit(){const a=ac();if(!a||MUS.out)return;MUS.out=a.createGain();MUS.out.gain.value=musicOn?.55:0;MUS.duck=a.createGain();MUS.lp=a.createBiquadFilter();MUS.lp.type='lowpass';MUS.lp.frequency.value=9000;MUS.lp.Q.value=.7;
+function musInit(){const a=ac();if(!a||MUS.out)return;MUS.out=a.createGain();MUS.out.gain.value=musicOn?.55:0;MUS.duck=a.createGain();MUS.lp=a.createBiquadFilter();MUS.lp.type='lowpass';MUS.lp.frequency.value=6500;MUS.lp.Q.value=.7;
  MUS.duck.connect(MUS.lp);MUS.lp.connect(MUS.out);MUS.out.connect(a.destination);const n=a.sampleRate*.5,b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;MUS.nb=b;MUS.timer=setInterval(musTick,25)}
 function musDuck(amt,dur){if(!MUS.duck||!AC)return;const t=AC.currentTime;MUS.duck.gain.cancelScheduledValues(t);MUS.duck.gain.setTargetAtTime(amt,t,.04);MUS.duck.gain.setTargetAtTime(1,t+dur,.25)}
 function mNote(pl,f,t,dur,type,vol,det=0,vib=0){const a=AC,o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.setValueAtTime(f,t);o.detune.setValueAtTime(det,t);if(vib){const l=a.createOscillator(),lg=a.createGain();l.frequency.value=5.5;lg.gain.value=vib;l.connect(lg);lg.connect(o.detune);l.start(t);l.stop(t+dur+.1)}
@@ -969,14 +969,14 @@ function musPlayer(name){const a=AC,g=a.createGain();g.gain.setValueAtTime(0,a.c
 function musSet(name){if(!MUS.out)return;if(MUS.cur&&MUS.cur.name===name)return;const a=AC;if(MUS.cur){const o=MUS.cur;o.g.gain.cancelScheduledValues(a.currentTime);o.g.gain.setValueAtTime(o.g.gain.value,a.currentTime);o.g.gain.linearRampToValueAtTime(0,a.currentTime+.9);o.dying=a.currentTime+1;setTimeout(()=>{try{o.g.disconnect()}catch(e){}},1500)}MUS.cur=musPlayer(name);MUS.players=MUS.players.filter(p=>!p.dying||p.dying>a.currentTime);MUS.players.push(MUS.cur)}
 function musWant(){if(!['play','card','paused','pass'].includes(S.mode))return'title';if(S.phase==='cart')return'cart';const th=(COURSES[CI]||{}).theme;return TRACKS[th]?th:'sunny'}
 function musTick(){const a=AC;if(!a||a.state!=='running'||!musicOn)return;let b=0;try{b=S.mode==='play'&&P()?P().drunk:0}catch(e){}MUS.b+=(b-MUS.b)*.05;b=MUS.b;
- const t0=a.currentTime;MUS.lp.frequency.setTargetAtTime(b>.15?2200+1800*(1-b)+Math.sin(t0*2.6)*1300*b:9000,t0,.05);MUS.lp.Q.setTargetAtTime(.7+b*7,t0,.1);
+ const t0=a.currentTime;MUS.lp.frequency.setTargetAtTime(b>.15?2200+1800*(1-b)+Math.sin(t0*2.6)*1300*b:6500,t0,.05);MUS.lp.Q.setTargetAtTime(.7+b*7,t0,.1);
  for(const pl of MUS.players){if(pl.dying&&pl.dying<t0)continue;const tr=pl.tr,sp=60/(tr.bpm*(1-.12*b))/4;
   while(pl.next<t0+.12){const st=pl.step%16,bar=Math.floor(pl.step/16)%8,t=pl.next+(tr.style==='lounge'&&st%4===2?sp*.33:0)+(b>.3?(Math.random()-.5)*.025*b:0);musStep(pl,tr,st,bar,t,sp,b);
    if(st===0&&b>.4&&Math.random()<b*.35)pl.hic=1+Math.floor(Math.random()*14);if(st===pl.hic){pl.hic=-1;mNote(pl,1300,t+sp*.5,.05,'square',.05);/*stutter: repeat this step*/}else pl.step++;pl.next+=sp}}}
 function musStep(pl,tr,st,bar,t,sp,b){const ci=tr.ch[bar%4],det=()=>(Math.random()-.5)*b*55+Math.sin(t*1.7)*b*30,sty=tr.style;
  // drums
  if(sty==='ska'){if(st%8===0)mKick(pl,t,.5);if(st===4||st===12)mNoise(pl,t,.14,.28,1800,'bandpass');if(st%2===0)mNoise(pl,t,.04,.09,7000,'highpass')}
- else if(sty==='bossa'){if([0,3,8,11].includes(st))mKick(pl,t,.38);if([0,3,6,10,12].includes(st))mNote(pl,1700,t,.03,'square',.05);mNoise(pl,t,.03,st%2?.04:.07,6000,'highpass')}
+ else if(sty==='bossa'){if([0,3,8,11].includes(st))mKick(pl,t,.38);if([0,3,6,10,12].includes(st))mNote(pl,tr===TRACKS.frost?620:1700,t,.05,tr===TRACKS.frost?'sine':'square',tr===TRACKS.frost?.07:.05);mNoise(pl,t,.03,tr===TRACKS.frost?(st%2?.015:.03):(st%2?.04:.07),tr===TRACKS.frost?4000:6000,'highpass')}
  else if(sty==='lounge'){if(st===0||st===10)mKick(pl,t,.35);if(st===4||st===12)mNoise(pl,t,.22,.12,2500,'bandpass');if(st%4!==1&&st%2===0)mNoise(pl,t,.06,.06,8000,'highpass')}
  else if(sty==='tiki'){if(st===0||st===6||st===10)mNote(pl,82,t,sp*2,'sine',.42);if(st===3||st===12||st===14)mNote(pl,124,t,sp*1.5,'sine',.3);if(st===8)mKick(pl,t,.45);mNoise(pl,t,.03,st%2?.05:.08,5000,'highpass')}
  else{if(st===0||st===8||st===10)mKick(pl,t,.55);if(st===4||st===12)mNoise(pl,t,.16,.32,1500,'bandpass');mNoise(pl,t,.03,.07,8000,'highpass')}
@@ -986,7 +986,8 @@ function musStep(pl,tr,st,bar,t,sp,b){const ci=tr.ch[bar%4],det=()=>(Math.random
  // chords
  const chord=[0,2,4,6].map(i=>mf(deg(tr,ci+i,-1)));
  if(sty==='ska'&&st%4===2)for(const f of chord.slice(0,3))mNote(pl,f,t,sp*.7,'square',.035,det());
- if(sty==='bossa'&&[0,3,6,10,13].includes(st))for(const f of chord)mNote(pl,f,t,sp*2.2,'triangle',.05,det());
+ if(sty==='bossa'&&[0,3,6,10,13].includes(st))for(const f of chord)mNote(pl,f,t,sp*2.2,tr===TRACKS.frost?'sine':'triangle',tr===TRACKS.frost?.06:.05,det(),tr===TRACKS.frost?5:0);
+ if(tr===TRACKS.frost&&st===0)for(const f of chord.slice(0,3))mNote(pl,f/2,t,sp*15,'sine',.035,det(),4);
  if(sty==='lounge'&&(st===0||st===6||st===10))for(const f of chord)mNote(pl,f,t,sp*3.5,'sine',.06,det(),6);
  if(sty==='tiki'&&st%4===0)for(const f of chord.slice(0,3))mNote(pl,f,t,sp*3,'sine',.045,det(),7);
  if(sty==='surf'&&st%2===0)for(const f of chord.slice(0,3))mNote(pl,f,t,sp*.8,'sawtooth',.02,det());
