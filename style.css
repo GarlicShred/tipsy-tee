@@ -156,3 +156,19 @@ table{border-collapse:collapse;font-size:13px;margin:auto}td,th{padding:5px 6px;
 button.link{background:none;box-shadow:none;color:#7a5a30;font-size:14px;text-decoration:underline;padding:8px}
 button,.crs{-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 #obSip{white-space:nowrap;font-size:clamp(17px,5.2vw,24px)}
+/* v24 juice: springy taps, card + results animate in */
+button{transition:transform .14s cubic-bezier(.3,1.7,.5,1),box-shadow .14s,background-color .15s}
+button:active{transform:translateY(3px) scale(.94)}
+#bSwing:active,#bSwing.hold{transform:scale(.9)}
+#clubs button.sel{animation:clubPop .25s cubic-bezier(.3,1.8,.5,1)}
+.sheet button:active,.sheet .dk:active{transform:translateY(2px)}
+#card.show{animation:cardIn .38s cubic-bezier(.2,1.35,.4,1) both}
+#card.show #cardTbl tr{animation:rowIn .32s ease-out both}
+#card.show #cardTbl tr:nth-child(2){animation-delay:.06s}#card.show #cardTbl tr:nth-child(3){animation-delay:.12s}#card.show #cardTbl tr:nth-child(4){animation-delay:.18s}#card.show #cardTbl tr:nth-child(5){animation-delay:.24s}#card.show #cardTbl tr:nth-child(n+6){animation-delay:.3s}
+#card.show #bCardGo{animation:rowIn .3s .3s ease-out both}
+.podium .pd{animation:podUp .5s cubic-bezier(.2,1.5,.4,1) both}.podium .pd:nth-child(2){animation-delay:.12s}.podium .pd:nth-child(3){animation-delay:.24s}
+@keyframes cardIn{from{opacity:0;transform:translateY(24px) scale(.92)}to{opacity:1;transform:none}}
+@keyframes rowIn{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+@keyframes clubPop{50%{transform:scale(1.12)}}
+@keyframes podUp{from{opacity:0;transform:translateY(30px) scale(.8)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){#card.show,#card.show #cardTbl tr,#card.show #bCardGo,.podium .pd,#clubs button.sel{animation:none}}
