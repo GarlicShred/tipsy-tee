@@ -82,8 +82,11 @@ const OPTS={
  face:['Grin','Smile','Smug','Ooh','Cheeky'],
  stache:['None','Classic','Handlebar','Chevron','Beard'],
  glasses:['None','Shades','Round','Star','Monocle'],
- body:['Classic','Slim','Round','Tall','Tiny'],
- hair:['Short','Mop','Curly','Mohawk','Long','Bald'],
+ body:['Classic','Slim','Round','Tall','Tiny','Dad Bod','Big Boy'],
+ hair:['Short','Mop','Curly','Mohawk','Long','Bald','Mullet','Afro','Man Bun','Pigtails','Bowl Cut','Spiky','Comb-Over'],
+ pattern:['Solid','Hawaiian','Argyle','Plaid'],
+ socks:['Ankle','Crew','Dad Socks'],
+ tan:['Normal','Pasty','Golf Tan','Lobster'],
  hairC:['#4a2c15','#1a1a1a','#e8c25a','#c0521f','#9a9a9a','#ff5fd2','#1fa3ff']
 };
 // ---------- economy / pro shop ----------
@@ -105,20 +108,29 @@ function grant(id,why){if(owned().includes(id))return false;const o=owned();o.pu
 const celebQ=[];let celebOn=false;
 function celebrate(e,n,why){celebQ.push([e,n,why]);if(!celebOn)nextCeleb()}
 function nextCeleb(){const c=celebQ.shift();if(!c){celebOn=false;return}celebOn=true;const u=$('unlock');u.querySelector('.ue').textContent=c[0];u.querySelector('.un').textContent=c[1];u.querySelector('.uw').textContent=c[2]||'';u.classList.remove('go');void u.offsetWidth;u.classList.add('go');SFX.unlock();buzz([40,40,80]);setTimeout(nextCeleb,2600)}
-function randomChar(i){const r0=a=>a[Math.floor(Math.random()*a.length)];const r=a=>{const k=Object.keys(OPTS).find(k=>OPTS[k]===a);const f=k?a.filter(v=>!isLocked(k,v)):a;return r0(f.length?f:a)};const n=['Chip','Bogey','Shanks','Birdie','Wedgie','Putts','Fairway Frank','Divot','Sandy','Tipsy Tom','Mulligan'];return{name:r(n),skin:r(OPTS.skin),shirt:r(OPTS.shirt),pants:r(OPTS.pants),hat:r(OPTS.hat),hatC:r(OPTS.hatC),face:r(OPTS.face),stache:r(OPTS.stache),glasses:r(OPTS.glasses),body:r(OPTS.body),hair:r(OPTS.hair),hairC:r(OPTS.hairC)}}
+function randomChar(i){const r0=a=>a[Math.floor(Math.random()*a.length)];const r=a=>{const k=Object.keys(OPTS).find(k=>OPTS[k]===a);const f=k?a.filter(v=>!isLocked(k,v)):a;return r0(f.length?f:a)};const n=['Chip','Bogey','Shanks','Birdie','Wedgie','Putts','Fairway Frank','Divot','Sandy','Tipsy Tom','Mulligan'];return{name:r(n),skin:r(OPTS.skin),shirt:r(OPTS.shirt),pants:r(OPTS.pants),hat:r(OPTS.hat),hatC:r(OPTS.hatC),face:r(OPTS.face),stache:r(OPTS.stache),glasses:r(OPTS.glasses),body:r(OPTS.body),hair:r(OPTS.hair),hairC:r(OPTS.hairC),pattern:r(OPTS.pattern),socks:r(OPTS.socks),tan:r(OPTS.tan)}}
+const CDEF={pattern:'Solid',socks:'Ankle',tan:'Normal'};
+const patTex={};function patMap(p){if(patTex[p])return patTex[p];const cv=document.createElement('canvas');cv.width=cv.height=64;const x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,64,64);
+ if(p==='Hawaiian'){x.fillStyle='#c8c8c8';x.fillRect(0,0,64,64);for(const[a,b,r]of[[14,14,9],[46,22,8],[24,46,9],[56,54,7],[4,40,6]]){x.fillStyle='#4a7a3a';x.beginPath();x.ellipse(a+r*.9,b+r*.6,r*.9,r*.35,.6,0,7);x.fill();x.fillStyle='#ffffff';for(let k=0;k<5;k++){const q=k/5*6.28;x.beginPath();x.arc(a+Math.cos(q)*r*.55,b+Math.sin(q)*r*.55,r*.5,0,7);x.fill()}x.fillStyle='#ffd23f';x.beginPath();x.arc(a,b,r*.3,0,7);x.fill()}}
+ else if(p==='Argyle'){for(let i=0;i<2;i++)for(let j=0;j<2;j++){x.fillStyle=(i+j)%2?'#a8a8a8':'#ffffff';x.beginPath();x.moveTo(i*32+16,j*32);x.lineTo(i*32+32,j*32+16);x.lineTo(i*32+16,j*32+32);x.lineTo(i*32,j*32+16);x.fill()}x.strokeStyle='#333';x.lineWidth=1.5;x.setLineDash([3,3]);for(let k=-64;k<=64;k+=32){x.beginPath();x.moveTo(k,0);x.lineTo(k+64,64);x.stroke();x.beginPath();x.moveTo(k+64,0);x.lineTo(k,64);x.stroke()}}
+ else if(p==='Plaid'){x.fillStyle='rgba(0,0,0,.28)';for(const k of[8,40]){x.fillRect(k,0,12,64);x.fillRect(0,k,64,12)}x.fillStyle='rgba(255,255,255,.9)';for(const k of[28,60]){x.fillRect(k,0,2,64);x.fillRect(0,k,64,2)}x.fillStyle='rgba(0,0,0,.4)';for(const k of[2,34]){x.fillRect(k,0,2,64);x.fillRect(0,k,64,2)}}
+ const t=new THREE.CanvasTexture(cv);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(3,2);t.colorSpace=THREE.SRGBColorSpace;return patTex[p]=t}
+function tanCol(sk,t){const c=new THREE.Color(sk);if(t==='Pasty')c.lerp(new THREE.Color('#fff4ec'),.45);else if(t==='Golf Tan')c.lerp(new THREE.Color('#8a4b22'),.3);else if(t==='Lobster')c.lerp(new THREE.Color('#ff3b24'),.55);return c}
 function makeGolfer(c){
  const root=new THREE.Group();
- const bs={Classic:[1,1,1,1],Slim:[.8,1.08,1.1,1],Round:[1.35,.95,.88,1],Tall:[.95,1.15,1.3,.95],Tiny:[.9,.8,.75,1.12]}[c.body]||[1,1,1,1];
+ const bs={Classic:[1,1,1,1],Slim:[.8,1.08,1.1,1],Round:[1.35,.95,.88,1],Tall:[.95,1.15,1.3,.95],Tiny:[.9,.8,.75,1.12],'Dad Bod':[1.45,.97,.9,1],'Big Boy':[1.75,1,.86,1]}[c.body]||[1,1,1,1];
  const [sx,sy,ll,hs]=bs;
- const skin=M(c.skin),shirt=M(c.shirt,c.shirt==='#d4af37'?{emissive:0x4a3500}:c.shirt==='#39ff14'?{emissive:0x0a5a00}:{}),pants=M(c.pants),hatM=M(c.hatC),hairM=M(c.hairC||'#4a2c15'),dark=MC(0x1a1a1a),white=MC(0xffffff),shoeM=MC(0x3a2a20);
+ c=Object.assign({},CDEF,c);const fat=c.body==='Dad Bod'?1:c.body==='Big Boy'?2:0;const skin=M(tanCol(c.skin,c.tan)),shirt=M(c.shirt,Object.assign(c.shirt==='#d4af37'?{emissive:0x4a3500}:c.shirt==='#39ff14'?{emissive:0x0a5a00}:{},c.pattern&&c.pattern!=='Solid'&&OPTS.pattern.includes(c.pattern)?{map:patMap(c.pattern)}:{})),pants=M(c.pants),hatM=M(c.hatC),hairM=M(c.hairC||'#4a2c15'),sockM=MC(0xffffff),paleM=M(new THREE.Color(c.skin).lerp(new THREE.Color('#fff8f0'),.5)),dark=MC(0x1a1a1a),white=MC(0xffffff),shoeM=MC(0x3a2a20);
  const legLen=.42*ll,hipY=legLen+.12;
  // legs
  const legs=[];for(const s of[-1,1]){const lg=new THREE.Group();lg.position.set(s*.13*sx,hipY,0);root.add(lg);
-  const th=mesh(new THREE.CapsuleGeometry(.1,legLen-.1,4,10),pants,0,-legLen/2,0,lg);
+  if(c.socks==='Dad Socks'){const L=legLen;mesh(new THREE.CapsuleGeometry(.11,L*.3,4,10),pants,0,-L*.2,0,lg);const kn=mesh(G.cyl,skin,0,-L*.47,0,lg);kn.scale.set(.075,L*.2,.075);if(c.tan==='Golf Tan'){const pl=mesh(G.cyl,paleM,0,-L*.555,0,lg);pl.scale.set(.077,.03,.077)}const so=mesh(G.cyl,sockM,0,-L*.78,0,lg);so.scale.set(.085,L*.45,.085);const st2=mesh(G.cyl,MC(0x2b5cff),0,-L*.6,0,lg);st2.scale.set(.087,.025,.087)}
+  else{mesh(new THREE.CapsuleGeometry(.1,legLen-.1,4,10),pants,0,-legLen/2,0,lg);if(c.socks==='Crew'){const so=mesh(G.cyl,sockM,0,-legLen+.03,0,lg);so.scale.set(.085,.12,.085)}}
   const sh=mesh(G.sph,shoeM,0,-legLen-.04,.07,lg);sh.scale.set(.12,.08,.19);legs.push(lg)}
  const body=new THREE.Group();body.position.y=hipY;root.add(body);
  const hip=mesh(G.sph,pants,0,.05,0,body);hip.scale.set(.27*sx,.17,.22*sx);
  const torso=mesh(new THREE.CapsuleGeometry(.24,.22,6,14),shirt,0,.3*sy,0,body);torso.scale.set(sx,sy,.85*sx);
+ let belly=null;if(fat){belly=new THREE.Group();belly.position.set(0,.2,.1*sx);body.add(belly);const gb=mesh(G.sph,shirt,0,0,.06,belly);gb.scale.set(.3*sx*.72,.24+fat*.03,.24+fat*.05);const bb=mesh(G.sph,skin,0,-.13-fat*.01,.18+fat*.04,belly);bb.scale.set(.15*sx*.7,.06,.1)}
  const belt=mesh(G.cyl,dark,0,.12,0,body);belt.scale.set(.245*sx,.04,.21*sx);
  const collar=mesh(new THREE.TorusGeometry(.1,.035,6,16),white,0,.62*sy,0,body);collar.rotation.x=Math.PI/2;
  const neck=mesh(G.cyl,skin,0,.64*sy,0,body);neck.scale.set(.08,.12,.08);
@@ -155,7 +167,15 @@ function makeGolfer(c){
   Mohawk:()=>{for(let k=0;k<5;k++){const m=mesh(G.cone,hairM,0,.36,.2-k*.11,head);m.scale.set(.06,.18,.06);m.rotation.x=-.3+k*.15}},
   Long:()=>{const a=mesh(new THREE.SphereGeometry(1,16,8,0,Math.PI*2,0,Math.PI*.45),hairM,0,.02,-.02,head);a.scale.set(.38,.37,.37);const b=mesh(G.sph,hairM,0,-.12,-.16,head);b.scale.set(.34,.32,.18)},
   Curly:()=>{for(let k=0;k<14;k++){const a=Math.random()*Math.PI*2,e=Math.random()*1.1;const m=mesh(G.sphL,hairM,Math.cos(a)*Math.sin(e)*.33,Math.cos(e)*.31+.02,Math.sin(a)*Math.sin(e)*.31-.04,head);m.scale.setScalar(.1)}},
+  Mullet:()=>{hr.Short();const b=mesh(G.sph,hairM,0,-.2,-.2,head);b.scale.set(.3,.3,.15);const t2=mesh(G.sph,hairM,0,-.38,-.2,head);t2.scale.set(.22,.16,.1)},
+  Afro:()=>{if(capd){for(const s of[-1,1]){const m=mesh(G.sph,hairM,s*.33,.02,-.05,head);m.scale.set(.15,.22,.25)}const b=mesh(G.sph,hairM,0,0,-.24,head);b.scale.set(.32,.26,.16)}else{const a=mesh(G.sph,hairM,0,.2,-.13,head);a.scale.set(.52,.44,.44)}},
+  'Man Bun':()=>{hr.Short();if(!capd||c.hat==='Visor'){const b=mesh(G.sph,hairM,0,.3,-.2,head);b.scale.setScalar(.13)}else{const b=mesh(G.sph,hairM,0,-.02,-.4,head);b.scale.setScalar(.12)}},
+  Pigtails:()=>{hr.Short();for(const s of[-1,1]){const p=mesh(G.sph,hairM,s*.4,-.08,-.1,head);p.scale.set(.1,.18,.1);p.rotation.z=s*.5;mesh(G.sph,MC(0xff5fd2),s*.36,.04,-.1,head).scale.setScalar(.045)}},
+  'Bowl Cut':()=>{const a=mesh(new THREE.SphereGeometry(1,16,8,0,Math.PI*2,0,Math.PI*.5),hairM,0,.04,0,head);a.scale.set(.4,.4,.39);const f=mesh(G.cyl,hairM,0,.06,0,head);f.scale.set(.4,.06,.39)},
+  Spiky:()=>{hr.Short();if(capd)return;for(let k=0;k<8;k++){const a=k/8*Math.PI*2;const m=mesh(G.cone,hairM,Math.cos(a)*.17,.33,Math.sin(a)*.15-.03,head);m.scale.set(.07,.2,.07);m.rotation.set(Math.sin(a)*.6,0,-Math.cos(a)*.6)}mesh(G.cone,hairM,0,.42,0,head).scale.set(.07,.2,.07)},
+  'Comb-Over':()=>{for(const s of[-1,1]){const m=mesh(G.sph,hairM,s*.31,.02,-.08,head);m.scale.set(.08,.13,.22)}const b=mesh(G.sph,hairM,0,-.02,-.28,head);b.scale.set(.25,.13,.08);if(capd)return;const cg=new THREE.Group();cg.position.set(-.3,.2,0);head.add(cg);for(const[z,w]of[[-.06,.1],[.06,.09]]){const sd=mesh(G.sphL,hairM,.27,.13,z,cg);sd.scale.set(.32,.035,w);sd.rotation.z=-.38}comb=cg},
   Bald:()=>{},None:()=>{}};
+ const capd=!['None','Halo','Party'].includes(c.hat);let comb=null;
  (hr[c.hair]||hr.Short)();
  const hat=new THREE.Group();hat.position.y=.26;hat.scale.setScalar(.7);head.add(hat);
  const hm={Cap:()=>{const a=mesh(new THREE.SphereGeometry(1,16,8,0,Math.PI*2,0,Math.PI/2),hatM,0,-.05,0,hat);a.scale.set(.52,.38,.52);const b=mesh(G.cyl,hatM,0,-.04,.38,hat);b.scale.set(.32,.02,.3)},
@@ -173,7 +193,7 @@ function makeGolfer(c){
   Viking:()=>{const a=mesh(new THREE.SphereGeometry(1,16,8,0,Math.PI*2,0,Math.PI/2),MC(0x999999),0,-.1,0,hat);a.scale.set(.55,.44,.55);for(const s of[-1,1]){const h=mesh(G.cone,MC(0xfff3d0),s*.58,.15,0,hat);h.scale.set(.1,.4,.1);h.rotation.z=-s*.9}},None:()=>{}};
  (hm[c.hat]||hm.None)();
  // arms (shoulders group swings for golf)
- const swing=new THREE.Group();swing.position.set(0,.5*sy,0);body.add(swing);
+ const swing=new THREE.Group();swing.position.set(0,.5*sy,fat?.08+fat*.08:0);body.add(swing);
  const armLen=.4*(.85+ll*.15);
  function mkArm(s){const a=new THREE.Group();a.position.set(s*.27*sx,0,0);swing.add(a);mesh(G.sph,shirt,0,0,0,a).scale.setScalar(.1);
   mesh(new THREE.CapsuleGeometry(.065,armLen-.08,4,8),shirt,0,-armLen/2,0,a);const h=mesh(G.sph,skin,0,-armLen,0,a);h.scale.set(.085,.095,.085);const th=mesh(G.sph,skin,s*-.05,-armLen+.03,.04,a);th.scale.setScalar(.04);return a}
@@ -185,7 +205,8 @@ function makeGolfer(c){
  {const k=(c.club||EQ().club);const CS={gold:[0xd4af37,0xffd700],wood:[0x8b5a2b,0x5a3416],neon:[0x39ff14,0xff2bd6],candy:[0xff3030,0xffffff]}[k];if(CS){shaft.material=k==='neon'?new THREE.MeshBasicMaterial({color:CS[0]}):M(CS[0],k==='gold'?{emissive:0x332200}:{});chead.material=k==='neon'?new THREE.MeshBasicMaterial({color:CS[1]}):M(CS[1])}}
  const can=new THREE.Group();can.position.set(0,-armLen-.05,.04);armR.add(can);can.visible=false;
  const canM=M(0xd0d0d0);mesh(G.cyl,canM,0,0,0,can).scale.set(.07,.18,.07);
- root.userData={body,head,legs,armL,armR,swing,club,can,canM,hat,eyes,lids,cheeks,mouthG,c,armLen};
+ if(c.tan==='Golf Tan'){const hl=armL.children[2];if(hl)hl.material=MC(0xffffff)}
+ root.userData={body,head,legs,armL,armR,swing,club,can,canM,hat,eyes,lids,cheeks,mouthG,c,armLen,belly,bv:0,bx:0,comb,cv:0,cx:0,fat};
  setPose(root,'address');return root;
 }
 function setPose(g,p){const u=g.userData;u.swing.rotation.set(0,0,0);u.head.rotation.set(0,0,0);
@@ -200,6 +221,8 @@ function golferMood(g,dr,t,hang){const u=g.userData;
  const sh=dr>.35?(dr-.35):0;u.legs[0].rotation.x=Math.sin(t*3.2)*sh*.6;u.legs[1].rotation.x=-Math.sin(t*3.2)*sh*.6;u.legs[0].rotation.z=Math.sin(t*1.6)*sh*.3;u.legs[1].rotation.z=Math.sin(t*1.6)*sh*.3;
  u.body.position.x=Math.sin(t*1.6)*sh*.12;
  for(const e of u.eyes){e.position.x=Math.sign(e.position.x)*.115+Math.sin(t*3+e.position.x*9)*.018*dr}
+ if(u.belly||u.comb){const dt=clamp(t-(u.lt??t),0,.05);u.lt=t;if(u.belly){u.bv+=(-u.bx*90-u.bv*(6-dr*3.5))*dt;u.bx+=u.bv*dt;const j=u.bx*(1+dr*1.5),q=1+clamp(j,-.25,.35);u.belly.scale.set(1/Math.sqrt(q),q,1/Math.sqrt(q));u.belly.rotation.z=j*.4}
+  if(u.comb){const w=(course&&course.wind&&course.wind.s)||2;u.cv+=(-u.cx*60-u.cv*5)*dt;u.cx+=u.cv*dt;u.comb.rotation.z=.02+Math.abs(Math.sin(t*(4+w)+Math.sin(t*1.7)))*(.12+w*.05)+Math.abs(u.cx)}}
  u.hat.rotation.z=Math.sin(t*1.3)*dr*.2;if(u.hat.userData.prop)u.hat.userData.prop.rotation.y=t*14;if(u.hat.userData.halo)u.hat.userData.halo.position.y=.45+Math.sin(t*2)*.04;
 }
 // returns nothing; drives limb poses for a phase
@@ -211,7 +234,7 @@ function animGolfer(u,ph,k,t,dr){
  else if(ph==='celebrate'){u.swing.rotation.set(0,0,0);u.armL.rotation.set(0,0,-2.6+Math.sin(k*14)*.3);u.armR.rotation.set(0,0,2.6-Math.sin(k*14)*.3);u.club.visible=false;if(dr>.3){u.body.rotation.z=Math.sin(k*9)*dr*.45;u.armL.rotation.z-=Math.sin(k*5)*dr*1.2;u.head.rotation.z=Math.sin(k*7)*dr*.3}}
  else if(ph==='cart'){}
  else{u.armL.rotation.set(-.45,0,-.38);u.armR.rotation.set(-.45,0,.38);u.head.rotation.x=0;
-  if(ph==='swing'){u.swing.rotation.set(0,k<.2?lerp(0,-.5,k/.2):lerp(-.5,.6,clamp((k-.2)/.15,0,1)),k<.2?lerp(0,-2.2,k/.2):lerp(-2.2,1.9,clamp((k-.2)/.15,0,1)));u.head.rotation.y=k>.3?.5:0}
+  if(ph==='swing'){if(k>.18&&k<.32){if(u.belly)u.bv+=.35+dr*.4;if(u.comb)u.cv+=1.4}u.swing.rotation.set(0,k<.2?lerp(0,-.5,k/.2):lerp(-.5,.6,clamp((k-.2)/.15,0,1)),k<.2?lerp(0,-2.2,k/.2):lerp(-2.2,1.9,clamp((k-.2)/.15,0,1)));u.head.rotation.y=k>.3?.5:0}
   else if(ph==='power'){u.swing.rotation.z=-S.dispPow*2;u.swing.rotation.y=-S.dispPow*.45}
   else{u.swing.rotation.z=lerp(u.swing.rotation.z,Math.sin(t*1.5)*.12*dr,.1);u.swing.rotation.y=lerp(u.swing.rotation.y,0,.1)}}
 }
@@ -512,9 +535,9 @@ cScene.add(new THREE.HemisphereLight(0xffffff,0x557744,1.2));const cl=new THREE.
 {const p=new THREE.Mesh(new THREE.CylinderGeometry(1.4,1.6,.3,32),MC(0x7ccf4f));p.position.y=-.15;cScene.add(p);const g=new THREE.Mesh(new THREE.CircleGeometry(30,32),MC(0x4f9a3a));g.rotation.x=-Math.PI/2;g.position.y=-.3;cScene.add(g)}
 const cCam=new THREE.PerspectiveCamera(40,1,.1,100);
 function startCreator(n){cN=n;cIdx=0;S.players=[];ac();editChar()}
-function editChar(){const saved=LS.get('chars',[]);cChar=Object.assign(randomChar(cIdx),saved[cIdx]||{});S.mode='creator';screen('creator');$('cTitle').textContent=cN>1?`Golfer ${cIdx+1}/${cN}`:'Create your golfer';$('cName').value=cChar.name;buildOpts();rebuildPreview()}
+function editChar(){const saved=LS.get('chars',[]);cChar=Object.assign(randomChar(cIdx),saved[cIdx]?Object.assign({},CDEF,saved[cIdx]):{});S.mode='creator';screen('creator');$('cTitle').textContent=cN>1?`Golfer ${cIdx+1}/${cN}`:'Create your golfer';$('cName').value=cChar.name;buildOpts();rebuildPreview()}
 function rebuildPreview(){if(cGolfer)cScene.remove(cGolfer);cGolfer=makeGolfer(cChar);cGolfer.userData.club.visible=false;setPose(cGolfer,'rest');cScene.add(cGolfer)}
-const LBL={skin:'Skin',shirt:'Shirt',pants:'Pants',hat:'Hat',hatC:'Hat color',face:'Face',stache:'Face fuzz',hair:'Hair',hairC:'Hair color',glasses:'Eyewear',body:'Body'};
+const LBL={skin:'Skin',shirt:'Shirt',pants:'Pants',hat:'Hat',hatC:'Hat color',face:'Face',stache:'Face fuzz',hair:'Hair',hairC:'Hair color',glasses:'Eyewear',body:'Body',pattern:'Shirt pattern',socks:'Socks',tan:'Tan'};
 function buildOpts(){const o=$('cOpts');o.innerHTML='';for(const k of Object.keys(LBL)){const r=document.createElement('div');r.className='opt';r.innerHTML=`<b>${LBL[k]}</b>`;const ch=document.createElement('div');ch.className='ch';
  for(const v of OPTS[k]){const e=document.createElement('div');if(v[0]==='#'){e.className='sw';e.style.background=v}else{e.className='tx';e.textContent=v}const lk=isLocked(k,v);if(lk)e.classList.add('lock');if(cChar[k]===v)e.classList.add('sel');e.onclick=()=>{if(lk){SFX.bad();toast('🔒 Unlock it in the Shop',true,1100);return}cChar[k]=v;SFX.click();buildOpts();rebuildPreview();cGolfer.userData.body.rotation.y=0;tipsy=0};ch.appendChild(e)}r.appendChild(ch);o.appendChild(r)}}
 let tipsy=0;
@@ -1006,7 +1029,7 @@ window.__MUS=MUS;window.__setMusic=setMusic;$('bTroph').onclick=()=>{SFX.click()
 const NETP='tipsytee-room-',NCH='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 function loadPeer(){return window.Peer?Promise.resolve():new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='peerjs.min.js';sc.onload=ok;sc.onerror=()=>no(new Error('load'));document.head.appendChild(sc)})}
 function netCode(){let s='';for(let i=0;i<5;i++)s+=NCH[Math.floor(Math.random()*NCH.length)];return s}
-function cleanC(c,e){const o={name:String(c.name||'Golfer').slice(0,12)};for(const k of['body','face','glasses','hair','hairC','hat','hatC','pants','shirt','skin','stache'])if(c[k]!==undefined)o[k]=c[k];e=e||EQ();o.club=String(e.club||'std').slice(0,16);o.ball=String(e.ball||'white').slice(0,16);o.trail=String(e.trail||'white').slice(0,16);return o}
+function cleanC(c,e){const o={name:String(c.name||'Golfer').slice(0,12)};for(const k of['body','face','glasses','hair','hairC','hat','hatC','pants','shirt','skin','stache','pattern','socks','tan'])if(c[k]!==undefined)o[k]=String(c[k]).slice(0,16);e=e||EQ();o.club=String(e.club||'std').slice(0,16);o.ball=String(e.ball||'white').slice(0,16);o.trail=String(e.trail||'white').slice(0,16);return o}
 function netMsg(t){$('lbMsg').textContent=t}
 function netSend(m,except){const N=S.net;if(!N)return;if(N.host){for(const[id,c]of N.conns)if(id!==except&&c.open)c.send(m)}else if(N.conn&&N.conn.open)N.conn.send(m)}
 function netRoster(){const N=S.net;$('lbList').innerHTML=N.list.map((p,i)=>`<div class="lbp"><span style="color:${p.c.shirt}">●</span> ${esc(p.c.name)}${i===0?' 👑':''}${p.id===N.me?' (you)':''}</div>`).join('')+(N.list.length<4?`<div class="lbp dim">${4-N.list.length} open seat${N.list.length<3?'s':''}…</div>`:'');
@@ -1163,5 +1186,5 @@ $('bLbLeave').onclick=()=>{SFX.click();netLeave();S.mode='title';screen('title')
 $('bShare').onclick=()=>{const N=S.net;if(!N||!N.url&&N.host)return;const url=N.url||(location.origin+location.pathname+'?room='+N.code),txt=`Join my Tipsy Tee room ${N.code}: ${url}`;if(navigator.share)navigator.share({title:'Tipsy Tee',text:txt,url}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(url).then(()=>toast('Invite link copied 📋',true,1200)).catch(()=>{})};
 {const rq=new URLSearchParams(location.search).get('room');if(rq){setTimeout(()=>{$('joinCode').value=netNorm(rq).slice(0,5);screen('online');S.mode='online'},400)}}
 
-window.__TT=S;window.__TTapi={get remotes(){return S.remotes},blackoutCheck,netCheck,cardPlayers,get net(){return S.net},barPos,camera,snapCam,holeDist,playReel,awardTrophies,DARES,dareNow,barTap,CLUBS,react,startReplay,duckRescue,maybeReplay,cartPathBlocked,get hills(){return hills},renderer,get trees(){return trees},scene,simEnd,surface,COURSES,buildHole,P,get course(){return course},shoot,launch,drink,DRINKS,setClub,holed,finishHole,showCard,addCoins,grant,setCourse,calcHint,startCart,honk,buildShop,buildCourses,coins};
+window.__TT=S;window.__TTapi={makeGolfer,setPose,golferMood,animGolfer,get remotes(){return S.remotes},blackoutCheck,netCheck,cardPlayers,get net(){return S.net},barPos,camera,snapCam,holeDist,playReel,awardTrophies,DARES,dareNow,barTap,CLUBS,react,startReplay,duckRescue,maybeReplay,cartPathBlocked,get hills(){return hills},renderer,get trees(){return trees},scene,simEnd,surface,COURSES,buildHole,P,get course(){return course},shoot,launch,drink,DRINKS,setClub,holed,finishHole,showCard,addCoins,grant,setCourse,calcHint,startCart,honk,buildShop,buildCourses,coins};
 })();
