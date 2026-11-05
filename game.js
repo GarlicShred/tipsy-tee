@@ -487,6 +487,7 @@ function applyBallSkin(){const k=EQ().ball,bm=ball.material;const C={white:[0xff
 // ---------- particles ----------
 const parts=[];const pGeo=new THREE.BoxGeometry(1,1,1);
 function burst(pos,n,colors,spd=6,size=.25,up=4,life=1.2){n=Math.min(n,320-parts.length);for(let i=0;i<n;i++){const m=new THREE.Mesh(pGeo,MC(colors[i%colors.length]));m.position.copy(pos);m.scale.setScalar(size*rand(.5,1.3));scene.add(m);parts.push({m,v:new V3(rand(-1,1)*spd,rand(.3,1)*up+rand(0,spd*.5),rand(-1,1)*spd),l:life*rand(.6,1.2),r:new V3(rand(-5,5),rand(-5,5),0)})}}
+const BUBM=new THREE.MeshBasicMaterial({color:0xeaf8ff,transparent:true,opacity:.55,depthWrite:false});
 function updParts(dt){for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.l-=dt;p.v.y-=9*dt*(p.g??1);p.m.position.addScaledVector(p.v,dt);p.m.rotation.x+=p.r.x*dt;p.m.rotation.y+=p.r.y*dt;if(p.m.position.y<.05){p.m.position.y=.05;p.v.multiplyScalar(.5)}if(p.l<=0){scene.remove(p.m);parts.splice(i,1)}}}
 // trail
 const trailN=40,trailGeo=new THREE.BufferGeometry();trailGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(trailN*3),3));const trail=new THREE.Line(trailGeo,new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.7}));trail.frustumCulled=false;scene.add(trail);let trailPts=[];
@@ -646,18 +647,20 @@ function start5(ms){S.g5Done=1;S.g5=S.hole;S.cut5={t0:performance.now()};addShad
  SFX.drumroll&&SFX.drumroll();setTimeout(()=>{if(S.cut5){SFX.woo();SFX.cheer&&SFX.cheer()}},1700);S.cut5.to=setTimeout(end5,ms||4700)}
 function end5(){if(!S.cut5)return;clearTimeout(S.cut5.to);S.cut5=null;document.body.classList.remove('cut5');$('slayBub').classList.remove('big5');$('slayBub').style.display='none';snapCam();setTimeout(vsDrink,600)}
 function slaySay(t,ms=2400,f){const b=$('slayBub');if(!b||S.cut5&&!f)return;b.textContent=t;b.style.display='block';b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');clearTimeout(slaySay.to);slaySay.to=setTimeout(()=>b.style.display='none',ms)}
-function vsDrink(){const p=P();if(!S.vs||!p||S.mode!=='play'||S.phase!=='aim')return;if(!p.ai&&S.vsDH===S.hole+'h')return;if(p.ai&&S.vsDH===S.hole+'s')return;
+function vsDrink(){if(S.cut5)return;const p=P();if(!S.vs||!p||S.mode!=='play'||S.phase!=='aim')return;if(!p.ai&&S.vsDH===S.hole+'h')return;if(p.ai&&S.vsDH===S.hole+'s')return;
  if(p.ai){S.vsD=pick(VDR)}const d=DRINKS.find(x=>x.id===S.vsD)||DRINKS.find(x=>x.id==='vsoda');S.vsDH=S.hole+(p.ai?'s':'h');
  if(p.ai){slaySay('🍸 '+pick(SLINES.drink).replace('{d}',d.n),2800)}else toast(`🍸 Slay's round: ${d.e} ${d.n} for your golfer`,true,2200);
  const cap=p.ai?.93:.9;drink(d);p.drunk=Math.min(p.drunk,cap);
- if(p.ai)setTimeout(()=>{if(P()===p&&S.vs){p.drunk=Math.min(.95,p.drunk+.08+Math.random()*.06);p.peak=Math.max(p.peak,p.drunk);slaySay('🍸 Slay orders another round!',2000);updHUD()}},2600)}
+ if(p.ai)S.vsExtra={d:pick(VDR),h:S.hole}}
+function slay2nd(){const x=S.vsExtra,p=P();S.vsExtra=null;if(!x||!p||!p.ai||!S.vs||x.h!==S.hole||S.phase!=='aim')return;const d=DRINKS.find(q=>q.id===x.d)||DRINKS.find(q=>q.id==='vsoda');slaySay('🍸 Slay orders another round! Double-fisting!',1900);S.aiHold=performance.now()+2300;
+ setTimeout(()=>{if(P()!==p||S.phase!=='aim')return;const old=p.drunk;p.drunk=Math.min(.95,p.drunk+.08+Math.random()*.06);p.peak=Math.max(p.peak,p.drunk);startChug(d,`🍸 Round two! ${d.e} ${d.n} · +${Math.round((p.drunk-old)*100)}%`,old);S.cut.dur=1.35;S.cut.dbl=1;SFX.glug();setTimeout(()=>SFX.glug(),450);S.shake=.25;updHUD()},300)}
 function slayTick(){const p=P(),on=!!(S.vs&&p&&p.ai&&S.mode==='play');document.body.classList.toggle('aiturn',on);if(!on){S.aiW=0;return}
  const now=performance.now();if(S.phase==='aim'&&!S.cut&&!S.cut5&&!S.bo&&!S.rp&&!S.dk&&!S.onb&&S.vsDH===S.hole+'s'){if(!S.aiW)S.aiW=now+(S.aiFast?450:1500);else if(now>S.aiW&&now>(S.aiHold||0)){S.aiW=0;slayShot()}}else S.aiW=0}
-function slayShot(){const p=P();calcHint();const h=S.hint,d=p.drunk;const ci=h.rec;setClub(ci);aimAtPin();let pw=h.pw[ci]||1,acc=0,aimE=0;const pure=Math.random()<.18;S.aiPure=pure;const k=.6+d;
+function slayShot(){const p=P();calcHint();const h=S.hint,d=p.drunk;const ci=h.rec;setClub(ci);aimAtPin();let pw=h.pw[ci]||1,acc=0,aimE=0;const pure=Math.random()<.18||!!S.forcePure;S.aiPure=pure;const k=.6+d;
  if(!pure){const r=Math.random();if(ci===4){pw*=r<.55?rand(.5,.85):rand(.95,1.35);aimE=rand(-.1,.1)*k}
   else if(r<.25)pw*=rand(.2,.5);else if(r<.5)acc=rand(.35,.75)*(Math.random()<.8?1:-1)*k;else if(r<.62)aimE=rand(.45,.8)*(Math.random()<.5?1:-1);else{pw*=rand(.78,1.02);acc=rand(-.3,.3)*k}}
  S.aim+=aimE;S.lockedPow=clamp(pw,.02,1);S.acc=clamp(acc,-1,1);S.phase='acc';shoot()}
-function slayPumped(){S.react={kind:'good',t:0,d:.1};S.aiHold=performance.now()+2300;const l=pick(SLINES.pure);toast('🍸 '+l,false,1800);slaySay(l,1800);SFX.cheer();SFX.roar();setTimeout(SFX.woo,250);setTimeout(()=>{addCoins(5);SFX.coin();toast('+5 🪙 hype bonus',true,1200)},900)}
+function slayPumped(){S.pumpCam=performance.now()+2200;S.react={kind:'good',t:0,d:.1};S.aiHold=performance.now()+2300;const l=pick(SLINES.pure);toast('🍸 '+l,false,1800);slaySay(l,1800);SFX.cheer();SFX.roar();setTimeout(SFX.woo,250);setTimeout(()=>{addCoins(5);SFX.coin();toast('+5 🪙 hype bonus',true,1200)},900)}
 function startVs(){S.vs=1;S.vsIntent=0;S.players.unshift({c:Object.assign({},SLAY),ai:1,g:null,drunk:.1,peak:0,hang:0,scores:[],style:0,strokes:0,steady:0,boost:0});startRound()}
 function startTurn(){cineClear();fadeIn();S.rc=null;$('raceHud').style.display='none';if(S.remotes)remoteClear();S.waterN=0;const p=P();p.hd={d:new Set()};S.barUsed=0;S.barFree=0;buildHole(S.hole);p.strokes=0;if(S.hole>0){p.drunk=Math.max(0,p.drunk-.05)}
  S.ballP.set(0,GY(0,0)+.35,0);S.ballV.set(0,0,0);S.lastP.copy(S.ballP);S.phase='aim';S.effects={};
@@ -693,7 +696,7 @@ function drink(d){const p=P();p.ldh=S.hole;$('bDrink').classList.remove('pulse')
  p.drunk=Math.max(0,p.drunk);p.peak=Math.max(p.peak,p.drunk);if(p.st)p.st.maxB=Math.max(p.st.maxB,Math.min(1,p.drunk));
  startChug(d,msg,old)}
 function startChug(d,msg,old){S.cut={t:0,d,msg,dur:d.shot?1.3:1.9,burped:false,old};S.phase='chug';const u=S.golfer.userData;u.can.visible=true;u.club.visible=false;u.canM.color.setHex(d.can);u.can.scale.set(d.shot?.7:d.cup?1.3:d.tall?.85:1,d.shot?.45:d.cup?.8:d.tall?1.9:1,d.shot?.7:d.cup?1.3:d.tall?.85:1);$('skip').style.display='block';$('bottom').style.visibility='hidden';updHUD();if(d.shot){SFX.click();setTimeout(SFX.slam,700);setTimeout(()=>{S.shake=.5;toast('SLAM! 🧊',true,700)},700)}else{SFX.open();setTimeout(SFX.glug,250)}show('drinks',false)}
-function endChug(){const c=S.cut;if(!c)return;S.cut=null;const u=S.golfer.userData;u.can.visible=false;u.club.visible=true;setPose(S.golfer,'address');u.body.rotation.set(0,0,0);$('skip').style.display='none';$('bottom').style.visibility='';S.phase=S.rc&&S.rc.phase!=='run'?'wait':'aim';
+function endChug(){const c=S.cut;if(!c)return;S.cut=null;const u=S.golfer.userData;u.can.visible=false;u.club.visible=true;setPose(S.golfer,'address');u.body.rotation.set(0,0,0);$('skip').style.display='none';$('bottom').style.visibility='';S.phase=S.rc&&S.rc.phase!=='run'?'wait':'aim';if(S.vsExtra&&!c.dbl)setTimeout(slay2nd,150);
  const p=P();if(!c.burped){SFX.burp()}if(c.msg)toast(c.msg);else toast(`${c.d.e} ${c.d.n}!`,true);
  if(p.drunk>=1){p.drunk=1;S.shake=1;toast('💀 MAXED OUT');SFX.bad();buzz([100,50,200])}
  const lvl=l=>l<.25?0:l<.5?1:l<.75?2:3;if(lvl(p.drunk)>lvl(c.old))setTimeout(()=>toast(['','Tipsy 🙂','Buzzed 🥴','WASTED 🤪'][lvl(p.drunk)],true),600);
@@ -986,7 +989,7 @@ function frame(now){requestAnimationFrame(frame);let dt=Math.min(.05,(now-last)/
    trailPts.push(S.ballP.clone());if(trailPts.length>trailN)trailPts.shift();if(S.rec&&S.rec.length<3000)S.rec.push(S.ballP.clone())}
   if(S.phase==='cart'&&myCart)updCart(dt,dr);updCine(dt,t);
   if(S.phase==='keg'&&S.keg)updKeg(dt);
-  if(S.phase==='chug'){const c=S.cut;c.t+=dt;if(c.t>1.15&&!c.burped){c.burped=true;SFX.burp();const u=S.golfer.userData;const mp=new V3();u.mouthG.getWorldPosition(mp);for(let i=0;i<14;i++){burst(mp,1,[0xffffff,c.d.col],1.5,.12,2,1);parts[parts.length-1].g=-.3}toast('*BUUURP*',true,900);S.shake=.3;buzz(60)}if(c.t>c.dur)endChug()}
+  if(S.phase==='chug'){const c=S.cut;c.t+=dt;if(c.t>1.15&&!c.burped){c.burped=true;SFX.burp();const u=S.golfer.userData;const mp=new V3();u.mouthG.getWorldPosition(mp);for(let i=0;i<10;i++){burst(mp,1,[0xffffff],1,.07,1.2,.6);const q=parts[parts.length-1];if(q){q.g=-.15;q.m.geometry=G.sph;q.m.material=BUBM}}toast('*BUUURP*',true,900);S.shake=.3;buzz(60)}if(c.t>c.dur)endChug()}
  }
  // laggy aim follow
  if(S.aimT!==undefined&&S.phase==='aim'){const h=HV();S.aim=lerp(S.aim,S.aimT,1-Math.exp(-dt*(14-11*h)))}
@@ -1001,7 +1004,7 @@ function frame(now){requestAnimationFrame(frame);let dt=Math.min(.05,(now-last)/
  else if(S.golfer){const g=S.golfer,u=g.userData;const ad=S.aim+(S.phase==='aim'||S.phase==='power'||S.phase==='acc'?S.wob:0);const d=dirV(ad),r=new V3(-d.z,0,d.x);
   if(S.phase!=='fly'||S.flightT<.8){const gp=S.ballP.clone().addScaledVector(r,-.9);if(S.phase!=='fly'){g.position.set(gp.x,0,gp.z);g.rotation.y=S.phase==='chug'?Math.atan2(-r.x,-r.z):Math.atan2(r.x,r.z)}}
   golferMood(g,dr,t,p.hang||0);
-  if(S.phase==='chug')animGolfer(u,'chug',S.cut.d.shot?Math.min(S.cut.t*1.5,1.05)+Math.max(0,S.cut.t-.7):S.cut.t,t,dr);else if(S.phase==='holed'){S.celebT=(S.celebT||0)+dt;animGolfer(u,'celebrate',S.celebT,t,dr);g.position.y=Math.abs(Math.sin(S.celebT*7))*.35}else if(S.swingT>=0){animGolfer(u,'swing',S.swingT,t,dr);if(hv>0){u.body.rotation.z+=Math.sin(S.swingT*25)*.25*hv;g.position.x+=Math.sin(t*11)*.04*hv}}else animGolfer(u,S.phase==='power'?'power':'idle',0,t,dr);if(S.phase!=='holed'){g.position.y=0;if(S.phase!=='chug')u.club.visible=!S.clubFly}g.rotation.z=0;reactAnim(g,u,dt,t,dr,r);if(u.vg){const idle=S.phase==='aim'&&S.swingT<0&&!S.react;u.vg.visible=S.phase!=='chug'&&S.swingT<0;if(idle){const k=Math.max(0,Math.sin(t*1.4));u.armL.rotation.set(-.45-1.5*k,0,-.38-.25*k);u.head.rotation.x=-.15*k}}if(course&&course.hf&&g.parent===scene)g.position.y+=GY(g.position.x,g.position.z)}
+  if(S.phase==='chug')animGolfer(u,'chug',S.cut.d.shot?Math.min(S.cut.t*1.5,1.05)+Math.max(0,S.cut.t-.7):S.cut.t,t,dr);else if(S.phase==='holed'){S.celebT=(S.celebT||0)+dt;animGolfer(u,'celebrate',S.celebT,t,dr);g.position.y=Math.abs(Math.sin(S.celebT*7))*.35}else if(S.swingT>=0){animGolfer(u,'swing',S.swingT,t,dr);if(hv>0){u.body.rotation.z+=Math.sin(S.swingT*25)*.25*hv;g.position.x+=Math.sin(t*11)*.04*hv}}else animGolfer(u,S.phase==='power'?'power':'idle',0,t,dr);if(S.phase!=='holed'){g.position.y=0;if(S.phase!=='chug')u.club.visible=!S.clubFly}g.rotation.z=0;reactAnim(g,u,dt,t,dr,r);if(u.vg){const idle=S.phase==='aim'&&S.swingT<0&&!S.react;u.vg.visible=S.phase!=='chug'&&S.swingT<0||!!(S.cut&&S.cut.dbl);if(S.cut&&S.cut.dbl){const k=Math.min(1,S.cut.t*3);u.armL.rotation.set(-.6-1.6*k,0,-.25);u.head.rotation.x=-.25*k}if(idle){const k=Math.max(0,Math.sin(t*1.4));u.armL.rotation.set(-.45-1.5*k,0,-.38-.25*k);u.head.rotation.x=-.15*k}}if(course&&course.hf&&g.parent===scene)g.position.y+=GY(g.position.x,g.position.z)}
  // world anim
  if(windmill)windmill.bl.rotation.z+=dt*1.1;if(cartObj){cartObj.position.x=Math.sin(t*.45)*38;cartObj.position.y=GY(cartObj.position.x,cartObj.position.z);cartObj.rotation.y=Math.cos(t*.45)>0?Math.PI/2:-Math.PI/2}
  if(flag){const pa=flag.geometry.attributes.position;for(let i=0;i<pa.count;i++){const x=pa.getX(i)+.8;pa.setZ(i,Math.sin(t*6+x*3)*.15*x)}pa.needsUpdate=true;const wa=course.wind.a;pinG.rotation.y=-wa+Math.PI/2;updGoggles(dt,t);updBar(dt,t);netTick(dt)}
@@ -1050,6 +1053,7 @@ function frame(now){requestAnimationFrame(frame);let dt=Math.min(.05,(now-last)/
  GT.value=t;gfxTick(dt,t);{const cs=S.cartS;slayTick();engSet(!!(myCart&&cs&&!cs.done&&S.mode!=='paused'&&!document.hidden),myCart&&ctl.gas?1:0,cs?cs.v||0:0)}if((S.hudT=(S.hudT||0)+dt)>.25){S.hudT=0;hudLayout()}sun.position.set(S.camL.x+30,60,S.camL.z+20);sun.target.position.copy(S.camL);
  if(S.flash>0)S.flash=Math.max(0,S.flash-dt*3);$('flash').style.opacity=S.flash*.6;
  const H=p.hang?1:0;const pd=S.mode==='title'?.15:dr;const Rr=Math.max(0,Math.min(1,(S.redT||0)/1.5)),Aa=absOn?.85:0;postMat.uniforms.R.value=Rr;postMat.uniforms.A.value=Aa;
+ if(S.pumpCam&&!S.cut5&&S.golfer){if(performance.now()<S.pumpCam&&S.mode==='play'){const h=S.golfer.userData.head,hw=h.getWorldPosition(new V3());camera.position.copy(h.localToWorld(new V3(.9,-.6,4.2)));camera.lookAt(hw.x,hw.y-.35,hw.z)}else{S.pumpCam=0;snapCam()}}
  if(S.cut5&&S.golfer){const k=Math.min(1,(performance.now()-S.cut5.t0)/1300),e=1-Math.pow(1-k,3),h=S.golfer.userData.head,hw=h.getWorldPosition(new V3());const cp=h.localToWorld(new V3(.45*(1-e),.12+.4*(1-e),2.5+7*(1-e)));camera.position.copy(cp);camera.lookAt(hw.x,hw.y+.06,hw.z)}
  if(pd<.02&&!H&&!Rr&&!Aa){renderer.setRenderTarget(null);renderer.render(scene,camera)}else{renderer.setRenderTarget(rt);renderer.render(scene,camera);renderer.setRenderTarget(null);postMat.uniforms.d.value=pd;postMat.uniforms.T.value=t;postMat.uniforms.H.value=H;renderer.render(postScene,postCam)}
 }
