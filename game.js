@@ -641,9 +641,10 @@ function addShades(g){const h=g.userData.head;if(!h||h.userData.sh)return;h.user
  for(const[x,y,z,rx,ry,rz,fc,lc]of P5){const gg=new THREE.Group();gg.position.set(x,y,z);gg.rotation.set(rx,ry,rz);h.add(gg);
   for(const sd of[-1,1]){const l=mesh(G.sph,MC(lc),sd*.12,0,0,gg);l.scale.set(.1,.075,.03);const f=mesh(G.sph,MC(fc),sd*.12,0,-.008,gg);f.scale.set(.118,.09,.022)}
   mesh(G.cyl,MC(fc),0,.02,0,gg).scale.set(.06,.012,.012).constructor;const br=gg.children[gg.children.length-1];br.rotation.z=Math.PI/2}}
-function want5(){const hu=S.players.find(p=>!p.ai);return S.vs&&S.hole===4&&!S.g5Done&&hu&&(hu.drunk>=.6||S.force5)}
+function want5(){const hu=S.players.find(p=>!p.ai);if(hu&&hu.drunk>=.5)S.w5=1;return S.vs&&!S.g5Done&&hu&&(S.w5||S.force5)}
+function softD(p){return p&&p.drunk>.5?1-.28*Math.min(1,(p.drunk-.5)/.3):1}
 function start5(ms){S.g5Done=1;S.g5=S.hole;S.cut5={t0:performance.now()};addShades(S.golfer);document.body.classList.add('cut5');
- slaySay('😎😎😎😎😎 "5th hole, number 5. I got 5 pairs of sunglasses for 5 bucks."',5200,1);$('slayBub').classList.add('big5');
+ slaySay('😎😎😎😎😎 "'+(S.hole===4?'5th hole, number 5.':'Hole number '+(S.hole+1)+'.')+' I got 5 pairs of sunglasses for 5 bucks."',5200,1);$('slayBub').classList.add('big5');
  SFX.drumroll&&SFX.drumroll();setTimeout(()=>{if(S.cut5){SFX.woo();SFX.cheer&&SFX.cheer()}},1700);S.cut5.to=setTimeout(end5,ms||4700)}
 function end5(){if(!S.cut5)return;clearTimeout(S.cut5.to);S.cut5=null;document.body.classList.remove('cut5');$('slayBub').classList.remove('big5');$('slayBub').style.display='none';snapCam();setTimeout(vsDrink,600)}
 function slaySay(t,ms=2400,f){const b=$('slayBub');if(!b||S.cut5&&!f)return;b.textContent=t;b.style.display='block';b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');clearTimeout(slaySay.to);slaySay.to=setTimeout(()=>b.style.display='none',ms)}
@@ -654,14 +655,14 @@ function vsDrink(){if(S.cut5)return;const p=P();if(!S.vs||!p||S.mode!=='play'||S
  if(p.ai)S.vsExtra={d:pick(VDR),h:S.hole}}
 function slay2nd(){const x=S.vsExtra,p=P();S.vsExtra=null;if(!x||!p||!p.ai||!S.vs||x.h!==S.hole||S.phase!=='aim')return;const d=DRINKS.find(q=>q.id===x.d)||DRINKS.find(q=>q.id==='vsoda');slaySay('🍸 Slay orders another round! Double-fisting!',1900);S.aiHold=performance.now()+2300;
  setTimeout(()=>{if(P()!==p||S.phase!=='aim')return;const old=p.drunk;p.drunk=Math.min(.95,p.drunk+.08+Math.random()*.06);p.peak=Math.max(p.peak,p.drunk);startChug(d,`🍸 Round two! ${d.e} ${d.n} · +${Math.round((p.drunk-old)*100)}%`,old);S.cut.dur=1.35;S.cut.dbl=1;SFX.glug();setTimeout(()=>SFX.glug(),450);S.shake=.25;updHUD()},300)}
-function slayTick(){const p=P(),on=!!(S.vs&&p&&p.ai&&S.mode==='play');document.body.classList.toggle('aiturn',on);if(!on){S.aiW=0;return}
- const now=performance.now();if(S.phase==='aim'&&!S.cut&&!S.cut5&&!S.bo&&!S.rp&&!S.dk&&!S.onb&&S.vsDH===S.hole+'s'){if(!S.aiW)S.aiW=now+(S.aiFast?450:1500);else if(now>S.aiW&&now>(S.aiHold||0)){S.aiW=0;slayShot()}}else S.aiW=0}
+function slayTick(){if(S.vs&&S.mode==='play')want5();const p=P(),on=!!(S.vs&&p&&p.ai&&S.mode==='play');document.body.classList.toggle('aiturn',on);if(!on){S.aiW=0;return}
+ const now=performance.now();if(S.phase==='aim'&&!S.cut&&!S.cut5&&!S.bo&&!S.rp&&!S.dk&&!S.onb&&!S.vsExtra&&now>(S.aiHold||0)&&want5()){S.aiW=0;start5();return}if(S.phase==='aim'&&!S.cut&&!S.cut5&&!S.bo&&!S.rp&&!S.dk&&!S.onb&&S.vsDH===S.hole+'s'){if(!S.aiW)S.aiW=now+(S.aiFast?450:1500);else if(now>S.aiW&&now>(S.aiHold||0)){S.aiW=0;slayShot()}}else S.aiW=0}
 function slayShot(){const p=P();calcHint();const h=S.hint,d=p.drunk;const ci=h.rec;setClub(ci);aimAtPin();let pw=h.pw[ci]||1,acc=0,aimE=0;const pure=Math.random()<.18||!!S.forcePure;S.aiPure=pure;const k=.6+d;
  if(!pure){const r=Math.random();if(ci===4){pw*=r<.55?rand(.5,.85):rand(.95,1.35);aimE=rand(-.1,.1)*k}
   else if(r<.25)pw*=rand(.2,.5);else if(r<.5)acc=rand(.35,.75)*(Math.random()<.8?1:-1)*k;else if(r<.62)aimE=rand(.45,.8)*(Math.random()<.5?1:-1);else{pw*=rand(.78,1.02);acc=rand(-.3,.3)*k}}
- S.aim+=aimE;S.lockedPow=clamp(pw,.02,1);S.acc=clamp(acc,-1,1);S.phase='acc';shoot()}
+ S.aiRef=S.aim;S.aim+=aimE;S.lockedPow=clamp(pw,.02,1);S.acc=clamp(acc,-1,1);S.phase='acc';shoot()}
 function slayPumped(){S.pumpCam=performance.now()+2200;S.react={kind:'good',t:0,d:.1};S.aiHold=performance.now()+2300;const l=pick(SLINES.pure);toast('🍸 '+l,false,1800);slaySay(l,1800);SFX.cheer();SFX.roar();setTimeout(SFX.woo,250);setTimeout(()=>{addCoins(5);SFX.coin();toast('+5 🪙 hype bonus',true,1200)},900)}
-function startVs(){S.vs=1;S.vsIntent=0;S.players.unshift({c:Object.assign({},SLAY),ai:1,g:null,drunk:.1,peak:0,hang:0,scores:[],style:0,strokes:0,steady:0,boost:0});startRound()}
+function startVs(){S.vs=1;S.g5Done=0;S.w5=0;S.vsIntent=0;S.players.unshift({c:Object.assign({},SLAY),ai:1,g:null,drunk:.1,peak:0,hang:0,scores:[],style:0,strokes:0,steady:0,boost:0});startRound()}
 function startTurn(){cineClear();fadeIn();S.rc=null;$('raceHud').style.display='none';if(S.remotes)remoteClear();S.waterN=0;const p=P();p.hd={d:new Set()};S.barUsed=0;S.barFree=0;buildHole(S.hole);p.strokes=0;if(S.hole>0){p.drunk=Math.max(0,p.drunk-.05)}
  S.ballP.set(0,GY(0,0)+.35,0);S.ballV.set(0,0,0);S.lastP.copy(S.ballP);S.phase='aim';S.effects={};
  if(S.golfer&&S.golfer.parent)S.golfer.parent.remove(S.golfer);S.golfer=makeGolfer(p.c);scene.add(S.golfer);if(p.ai&&S.g5===S.hole)addShades(S.golfer);
@@ -743,8 +744,8 @@ function shoot(){const p=P(),c=CLUBS[S.club];S.phase='swing';S.swingT=0;$('acc')
  S.pending={a,perfect,c}}
 function launch(){const p=P(),{a,perfect,c}=S.pending,pw=S.lockedPow;const h=HV();
  if(h>0&&Math.random()<.14*h){p.strokes++;S.phase='aim';p.steady=0;p.boost=0;p.vodka=0;SFX.swing();toast('🙈 Swung at the WRONG ball!\n+1 stroke',false,2000);quip('wasted',1);S.shake=.4;buzz(80);updHUD();return}let mult=drunkMult(p)*lieMult(c,surface(S.ballP.x,S.ballP.z));if(S.effects.rocket)mult*=1.8;
- const dir=S.aim+S.wob+rand(-.07,.07)*h+a*.13*(c.id==='putter'?.35:1)+(Math.random()-.5)*.08*p.drunk+(p.moon&&Math.random()<.3?(S.black=1.8,toast('🌑 Moonshine brownout…\nwhere did it go?!',false,1800),SFX.bad(),rand(-.9,.9)):0);
- S.shotStart.copy(S.ballP);S.lastP.copy(S.ballP);p.strokes++;S.curve=c.id==='putter'?0:a*7*(1+p.drunk);S.flightT=0;S.rec=[S.ballP.clone()];S.shotA=Math.abs(a);try{S.shotExp=c.id==='putter'?0:simEnd(S.club,pw,S.aim,S.ballP).along}catch(e){S.shotExp=0}S.shotDev=Math.abs(dir-S.aim);trailPts=[];
+ const sf=softD(p);let dir=S.aim+(S.wob+rand(-.07,.07)*h+a*.13*(c.id==='putter'?.35:1)+(Math.random()-.5)*.08*p.drunk)*sf+(p.moon&&Math.random()<.3?(S.black=1.8,toast('🌑 Moonshine brownout…\nwhere did it go?!',false,1800),SFX.bad(),rand(-.9,.9)):0);
+ S.shotStart.copy(S.ballP);S.lastP.copy(S.ballP);p.strokes++;const rf=S.aiRef!=null?S.aiRef:S.aim;S.aiRef=null;S.shotRef=rf;dir=rf+clamp(dir-rf,-.9,.9);S.curve=c.id==='putter'?0:a*7*(1+p.drunk)*sf;S.flightT=0;S.rec=[S.ballP.clone()];S.shotA=Math.abs(a);try{S.shotExp=c.id==='putter'?0:simEnd(S.club,pw,S.aim,S.ballP).along}catch(e){S.shotExp=0}S.shotDev=Math.abs(dir-S.aim);trailPts=[];
  const d=dirV(dir);
  if(c.id==='putter'){const dist=c.carry*pw*(1+.3*p.drunk);const v=Math.sqrt(2*1.7*dist);S.ballV.copy(d).multiplyScalar(v);SFX.putt()}
  else{const carry=c.carry*pw*mult*(perfect?1.05:1)*(1-Math.abs(a)*.15),th=c.ang*Math.PI/180,g=9.8*(S.effects.moon?.45:1);const v=Math.sqrt(carry*9.8/Math.sin(2*th));S.ballV.copy(d).multiplyScalar(v*Math.cos(th));S.ballV.y=v*Math.sin(th);SFX.hit(pw,c.id);S.shake=.25+pw*.3;buzz(30);
@@ -952,7 +953,7 @@ let last=performance.now();S.wob=0;S.dispPow=0;
 function physics(dt){const p=P(),b=S.ballP,v=S.ballV,c=course;
  if(S.airborne){const g=9.8*(S.effects.moon?.45:1);v.y-=g*dt;const wv=dirV(c.wind.a),wr=windRes();v.x+=wv.x*c.wind.s*.11*wr*dt;v.z+=wv.z*c.wind.s*.11*wr*dt;
   // curve
-  const hv=Math.hypot(v.x,v.z)||1,cpx=-v.z/hv,cpz=v.x/hv;v.x+=cpx*S.curve*dt;v.z+=cpz*S.curve*dt;
+  const hv=Math.hypot(v.x,v.z)||1,cpx=-v.z/hv,cpz=v.x/hv;v.x+=cpx*S.curve*dt;v.z+=cpz*S.curve*dt;{const hh=Math.hypot(v.x,v.z),dv=Math.atan2(Math.sin(Math.atan2(v.x,-v.z)-S.shotRef),Math.cos(Math.atan2(v.x,-v.z)-S.shotRef));if(S.shotRef!=null&&Math.abs(dv)>.9&&hh>.01){const na=S.shotRef+Math.sign(dv)*.9;v.x=Math.sin(na)*hh;v.z=-Math.cos(na)*hh;S.curve=0}}
   b.addScaledVector(v,dt);
   // trees
   for(const t of trees){if(b.y-(t.y||0)<t.h&&Math.hypot(b.x-t.x,b.z-t.z)<t.r+.35){const nx=(b.x-t.x),nz=(b.z-t.z),l=Math.hypot(nx,nz)||1;b.x=t.x+nx/l*(t.r+.4);b.z=t.z+nz/l*(t.r+.4);const dot=(v.x*nx+v.z*nz)/l;v.x=(v.x-2*dot*nx/l)*.35;v.z=(v.z-2*dot*nz/l)*.35;SFX.tree();burst(b.clone(),12,[0x2e8b3a,0x3fa34d],4,.25,2);S.shake=.4;if(!S.tTo){toast('TIMBER! 🌲',true,1000);quip('tree');S.tTo=1;setTimeout(()=>S.tTo=0,1500)}}}
