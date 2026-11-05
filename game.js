@@ -162,7 +162,7 @@ function makeGolfer(c){
  const eyes=[],lids=[];
  for(const s of[-1,1]){const e=mesh(G.sph,white,s*.12,.06,.28,head);e.scale.set(.075,.09,.05);const p=mesh(G.sph,dark,s*.115,.055,.325,head);p.scale.set(.035,.045,.02);eyes.push(p);
   const l=mesh(new THREE.SphereGeometry(1,16,8,0,Math.PI*2,0,Math.PI/2),skin,s*.12,.06,.285,head);l.scale.set(.082,.098,.056);l.rotation.x=-1.6;lids.push(l)}
- const cheeks=[];for(const s of[-1,1]){const m=new THREE.MeshBasicMaterial({color:0xff2a2a,transparent:true,opacity:0});const k=mesh(G.sph,m,s*.21,-.07,.27,head);k.scale.set(.07,.05,.04);k.castShadow=false;cheeks.push(k)}
+ const cheeks=[];
  const mouthG=new THREE.Group();mouthG.position.set(0,-.15,.31);head.add(mouthG);
  const fm={Grin:()=>{const m=mesh(new THREE.SphereGeometry(1,16,8,0,Math.PI*2,Math.PI/2,Math.PI/2),dark,0,.02,0,mouthG);m.scale.set(.1,.07,.03);const t=mesh(G.box,white,0,.012,.015,mouthG);t.scale.set(.13,.02,.02)},
   Smile:()=>{const m=mesh(new THREE.TorusGeometry(.07,.015,6,16,Math.PI),dark,0,.03,0,mouthG);m.rotation.z=Math.PI},
