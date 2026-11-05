@@ -196,3 +196,17 @@ button:active{transform:translateY(3px) scale(.94)}
 @media (max-width:340px){#hInfo{font-size:11.5px}#hDist{font-size:15px}#bSwing{width:80px;height:80px;font-size:16px}#bDrink{font-size:28px;padding:8px 10px}#clubs button{padding:7px 5px;font-size:11px;min-width:46px;margin:2px}}
 @media (max-width:400px){.dk{width:30%;min-width:0;margin:3px;padding:6px 4px}.dk .e{font-size:24px}.dk .n{font-size:13.5px;line-height:1.15;overflow-wrap:anywhere}.dk .d{font-size:10px;line-height:1.25}}
 @media (max-width:340px){.dk .n{font-size:12.5px;overflow-wrap:normal}}
+/* v26 Play vs Slay */
+#bVs{background:linear-gradient(135deg,#3cc8bd,#1f8f88);color:#fff}
+#slayBub{display:none;position:fixed;left:50%;top:15.5%;transform:translateX(-50%);max-width:78%;background:#fff;color:#123;border:3px solid #3cc8bd;border-radius:18px;padding:8px 14px;font-weight:800;font-size:16px;text-align:center;z-index:25;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+#slayBub::after{content:'';position:absolute;left:50%;bottom:-12px;margin-left:-8px;border:8px solid transparent;border-top-color:#3cc8bd}
+#slayBub.pop{animation:bubPop .25s ease-out}
+@keyframes bubPop{from{transform:translateX(-50%) scale(.6)}to{transform:translateX(-50%) scale(1)}}
+#aiTag{display:none;position:fixed;left:50%;bottom:calc(26px + env(safe-area-inset-bottom));transform:translateX(-50%);background:rgba(0,0,0,.55);color:#fff;padding:8px 14px;border-radius:14px;font-weight:700;font-size:14px;z-index:12;pointer-events:none;white-space:nowrap}
+body.aiturn #aiTag{display:block}
+body.aiturn #bottom,body.aiturn #drinks,body.aiturn #power,body.aiturn #acc{visibility:hidden!important}
+.vsl{font-size:18px;font-weight:700;margin:4px 0 8px}
+body.cut5 #hud,body.cut5 #toasts,body.cut5 #top,body.cut5 #bottom,body.cut5 #drinks,body.cut5 #power,body.cut5 #acc,body.cut5 #aiTag,body.cut5 #toast{opacity:0!important;pointer-events:none}
+body.cut5::before,body.cut5::after{content:'';position:fixed;left:0;right:0;height:11vh;background:#000;z-index:40;pointer-events:none}
+body.cut5::before{top:0}body.cut5::after{bottom:0}
+#slayBub.big5{top:auto;bottom:14vh;font-size:clamp(17px,5vw,24px);max-width:88vw;z-index:45;line-height:1.25}
