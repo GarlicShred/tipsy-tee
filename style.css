@@ -210,3 +210,5 @@ body.cut5 #hud,body.cut5 #toasts,body.cut5 #top,body.cut5 #bottom,body.cut5 #dri
 body.cut5::before,body.cut5::after{content:'';position:fixed;left:0;right:0;height:11vh;background:#000;z-index:40;pointer-events:none}
 body.cut5::before{top:0}body.cut5::after{bottom:0}
 #slayBub.big5{top:auto;bottom:14vh;font-size:clamp(17px,5vw,24px);max-width:88vw;z-index:45;line-height:1.25}
+
+.appVer{position:absolute;bottom:10px;right:12px;font-size:11px;opacity:.55;font-weight:700;letter-spacing:.04em;pointer-events:none}

@@ -7,7 +7,7 @@
 <canvas id="c"></canvas>
 <div id="ui">
  <div id="title" class="screen show">
-  <div class="logo">TIPSY<br>TEE<span>🍺⛳</span></div><div class="tag">The golf game where liquid courage is a strategy.</div>
+  <div class="logo">TIPSY<br>TEE<span>🍺⛳</span></div><div class="tag">The golf game where liquid courage is a strategy.</div><div id="appVer" class="appVer">v30</div>
   <button class="big" id="bPlay">PLAY</button><button class="big vsb" id="bVs">Play vs Slay 🍸</button><button id="bShop">🛍️ Pro Shop</button><button id="bOnline">🌐 Play Online</button><button id="bTroph">🏆 Trophies</button><button id="bHow">How to Play</button><div id="coinTxt" class="coins"></div><div id="bestTxt" class="small"></div>
  </div>
  <div id="courses" class="screen panel wide"><div class="shead"><h2>Pick a Course</h2><div id="cCoins" class="coins"></div></div><div id="cList"></div><button id="bCrsBack">Back</button></div>
@@ -49,5 +49,5 @@
  <div id="rot">Rotate to portrait for the best experience 📱</div>
 </div>
 <script src="three.min.js"></script><script src="game.js"></script>
-<script>if('serviceWorker' in navigator&&location.protocol!=='capacitor:')navigator.serviceWorker.register('sw.js').then(r=>{r.update().catch(()=>{});document.addEventListener('visibilitychange',()=>{if(!document.hidden)r.update().catch(()=>{})})}).catch(()=>{});{let had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!had){had=1;return}if(window.__TT&&window.__TT.net){window.__TTupd=1;return}location.reload()})}</script>
+<script>if('serviceWorker' in navigator&&location.protocol!=='capacitor:')navigator.serviceWorker.register('sw.js').then(r=>{const u=()=>r.update().catch(()=>{});u();document.addEventListener('visibilitychange',()=>{if(!document.hidden)u()});setInterval(u,6e4)}).catch(()=>{});{let had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!had){had=1;return}if(window.__TT&&window.__TT.net){window.__TTupd=1;return}location.reload()})}</script>
 </body></html>

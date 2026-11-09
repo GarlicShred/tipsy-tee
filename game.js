@@ -524,6 +524,7 @@ const REST={green:.22,fairway:.3,rough:.18,sand:.04,ice:.5},KEEP={green:.5,fairw
 const windRes=()=>EQ().club==='neon'?.85:1;
 function lieMult(c,s){if(c.id==='putter')return 1;return s==='sand'?(c.id==='wedge'?.85:.6):s==='rough'?.88:s==='ice'?.95:1}
 // ---------- game state ----------
+const APP_VER='v30';window.APP_VER=APP_VER;
 const S={mode:'title',players:[],cur:0,hole:0,ballP:new V3(),ballV:new V3(),lastP:new V3(),aim:0,club:0,phase:'aim',power:0,pDir:1,acc:0,aDir:1,t:0,shake:0,flightT:0,golfer:null,cut:null,curve:0,camP:new V3(0,8,15),camL:new V3(),effects:{},spin:0,shotStart:new V3(),swingT:-1,lockedPow:0};
 const P=()=>S.players[S.cur];const HV=()=>{const p=P();return p?clamp((p.drunk-.5)/.5,0,1):0};
 // ---------- UI build ----------
@@ -576,7 +577,7 @@ function tShow(q){if(tCur){clearTimeout(tCur.to);tCur.w.remove()}const d=documen
 function tEnd(){if(tCur){tCur.w.remove();tCur=null}const n=TQ.shift();if(n)tShow(n)}
 function toastClear(){TQ.length=0;if(tCur){clearTimeout(tCur.to);tCur.w.remove();tCur=null}}
 function fadeIn(ms=320){const f=$('fade');if(!f)return;f.style.transition='none';f.style.opacity=1;requestAnimationFrame(()=>requestAnimationFrame(()=>{f.style.transition=`opacity ${ms}ms ease-out`;f.style.opacity=0}))}
-const bestTxt=()=>{const b=LS.get('best_sunny',LS.get('best',null));$('bestTxt').textContent=b?`🏆 Sunny Links best: ${b.score} (${b.rel>0?'+':''}${b.rel}) by ${b.name}`:'5 courses · 30 holes of questionable decisions';$('coinTxt').textContent=`🪙 ${coins()}  ·  ⭐ ${LS.get('cstyle',0)} career style`};
+const bestTxt=()=>{const v=$('appVer');if(v)v.textContent=APP_VER;const b=LS.get('best_sunny',LS.get('best',null));$('bestTxt').textContent=b?`🏆 Sunny Links best: ${b.score} (${b.rel>0?'+':''}${b.rel}) by ${b.name}`:'5 courses · 30 holes of questionable decisions';$('coinTxt').textContent=`🪙 ${coins()}  ·  ⭐ ${LS.get('cstyle',0)} career style`};
 function buildCourses(){const el=$('cList');el.innerHTML='';COURSES.forEach((c,i)=>{const open=courseOpen(i),b=LS.get('best_'+c.id,null),par=c.holes.reduce((a,h)=>a+h.par,0),th=THEMES[c.theme];const d=document.createElement('div');d.className='crs'+(open?'':' locked');d.style.background=`linear-gradient(135deg,#${th.sky.toString(16).padStart(6,'0')},#${th.fair.toString(16).padStart(6,'0')})`;
  d.innerHTML=`<div class="ce">${c.e}</div><div class="ct"><b>${c.n}</b><small>${c.d}</small><small>Par ${par} · ${c.holes.length} holes${(()=>{const pb=LS.get('pb_'+c.id,null),pw=LS.get('pw_'+c.id,null);return pb?` · 🌟 PB ${pb.score} · 💀 PW ${pw?pw.score:'-'}`:b?` · 🏆 ${b.score}`:''})()}${cleared().includes(c.id)?' · ✅':''}</small></div>${open?'<div class="cgo">▶</div>':`<div class="cbuy">🔒<br>${i>0&&!cleared().includes(COURSES[i-1].id)?'Clear '+COURSES[i-1].n.split(' ')[0]+'<br>or ':''}🪙${c.cost}</div>`}`;
  d.onclick=()=>{if(open){SFX.click();if(S.netIntent==='host'){S.netCi=i;startCreator(1)}else{setCourse(i);if(S.vsIntent)startCreator(1);else screen('setup')}}else if(coins()>=c.cost){addCoins(-c.cost);LS.set('owned',[...owned(),'course:'+c.id]);SFX.coin();celebrate(c.e,c.n,'Course unlocked!');buildCourses();bestTxt()}else{SFX.bad();toast(`Need 🪙${c.cost-coins()} more. Play rounds to earn!`,true,1500)}};el.appendChild(d)});$('cCoins').textContent='🪙 '+coins()}
@@ -641,11 +642,12 @@ function addShades(g){const h=g.userData.head;if(!h||h.userData.sh)return;h.user
  for(const[x,y,z,rx,ry,rz,fc,lc]of P5){const gg=new THREE.Group();gg.position.set(x,y,z);gg.rotation.set(rx,ry,rz);h.add(gg);
   for(const sd of[-1,1]){const l=mesh(G.sph,MC(lc),sd*.12,0,0,gg);l.scale.set(.1,.075,.03);const f=mesh(G.sph,MC(fc),sd*.12,0,-.008,gg);f.scale.set(.118,.09,.022)}
   mesh(G.cyl,MC(fc),0,.02,0,gg).scale.set(.06,.012,.012).constructor;const br=gg.children[gg.children.length-1];br.rotation.z=Math.PI/2}}
-function want5(){const hu=S.players.find(p=>!p.ai);if(hu&&hu.drunk>=.5)S.w5=1;return S.vs&&!S.g5Done&&hu&&(S.w5||S.force5)}
 function softD(p){return p&&p.drunk>.5?1-.28*Math.min(1,(p.drunk-.5)/.3):1}
-function start5(ms){S.g5Done=1;S.g5=S.hole;S.cut5={t0:performance.now()};addShades(S.golfer);document.body.classList.add('cut5');
+function want5(){const hu=S.players.find(p=>!p.ai);if(!S.vs||S.g5Done||!hu)return 0;if(hu.drunk>=.5||S.force5)S.w5=1;const mid=Math.max(0,Math.min(Math.floor((HOLES.length-1)/2),HOLES.length-2));if(S.hole>=mid)S.w5=1;return!!(S.w5||S.force5)}
+function try5(){if(!want5()||S.cut5||S.mode!=='play')return;if(S.phase!=='aim'||S.cut||S.bo||S.rp||S.dk||S.onb||S.vsExtra)return;if(performance.now()<(S.aiHold||0))return;start5()}
+function start5(ms){S.g5Done=1;S.g5=S.hole;S.cut5={t0:performance.now(),lock:performance.now()+1600};addShades(S.golfer);document.body.classList.add('cut5');
  slaySay('😎😎😎😎😎 "'+(S.hole===4?'5th hole, number 5.':'Hole number '+(S.hole+1)+'.')+' I got 5 pairs of sunglasses for 5 bucks."',5200,1);$('slayBub').classList.add('big5');
- SFX.drumroll&&SFX.drumroll();setTimeout(()=>{if(S.cut5){SFX.woo();SFX.cheer&&SFX.cheer()}},1700);S.cut5.to=setTimeout(end5,ms||4700)}
+ SFX.drumroll&&SFX.drumroll();setTimeout(()=>{if(S.cut5){SFX.woo();SFX.cheer&&SFX.cheer()}},1700);S.cut5.to=setTimeout(end5,ms||5200)}
 function end5(){if(!S.cut5)return;clearTimeout(S.cut5.to);S.cut5=null;document.body.classList.remove('cut5');$('slayBub').classList.remove('big5');$('slayBub').style.display='none';snapCam();setTimeout(vsDrink,600)}
 function slaySay(t,ms=2400,f){const b=$('slayBub');if(!b||S.cut5&&!f)return;b.textContent=t;b.style.display='block';b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');clearTimeout(slaySay.to);slaySay.to=setTimeout(()=>b.style.display='none',ms)}
 function vsDrink(){if(S.cut5)return;const p=P();if(!S.vs||!p||S.mode!=='play'||S.phase!=='aim')return;if(!p.ai&&S.vsDH===S.hole+'h')return;if(p.ai&&S.vsDH===S.hole+'s')return;
@@ -655,8 +657,8 @@ function vsDrink(){if(S.cut5)return;const p=P();if(!S.vs||!p||S.mode!=='play'||S
  if(p.ai)S.vsExtra={d:pick(VDR),h:S.hole}}
 function slay2nd(){const x=S.vsExtra,p=P();S.vsExtra=null;if(!x||!p||!p.ai||!S.vs||x.h!==S.hole||S.phase!=='aim')return;const d=DRINKS.find(q=>q.id===x.d)||DRINKS.find(q=>q.id==='vsoda');slaySay('🍸 Slay orders another round! Double-fisting!',1900);S.aiHold=performance.now()+2300;
  setTimeout(()=>{if(P()!==p||S.phase!=='aim')return;const old=p.drunk;p.drunk=Math.min(.95,p.drunk+.08+Math.random()*.06);p.peak=Math.max(p.peak,p.drunk);startChug(d,`🍸 Round two! ${d.e} ${d.n} · +${Math.round((p.drunk-old)*100)}%`,old);S.cut.dur=1.35;S.cut.dbl=1;SFX.glug();setTimeout(()=>SFX.glug(),450);S.shake=.25;updHUD()},300)}
-function slayTick(){if(S.vs&&S.mode==='play')want5();const p=P(),on=!!(S.vs&&p&&p.ai&&S.mode==='play');document.body.classList.toggle('aiturn',on);if(!on){S.aiW=0;return}
- const now=performance.now();if(S.phase==='aim'&&!S.cut&&!S.cut5&&!S.bo&&!S.rp&&!S.dk&&!S.onb&&!S.vsExtra&&now>(S.aiHold||0)&&want5()){S.aiW=0;start5();return}if(S.phase==='aim'&&!S.cut&&!S.cut5&&!S.bo&&!S.rp&&!S.dk&&!S.onb&&S.vsDH===S.hole+'s'){if(!S.aiW)S.aiW=now+(S.aiFast?450:1500);else if(now>S.aiW&&now>(S.aiHold||0)){S.aiW=0;slayShot()}}else S.aiW=0}
+function slayTick(){if(S.vs&&S.mode==='play')try5();const p=P(),on=!!(S.vs&&p&&p.ai&&S.mode==='play');document.body.classList.toggle('aiturn',on);if(!on){S.aiW=0;return}
+ const now=performance.now();if(S.cut5)return;if(S.phase==='aim'&&!S.cut&&!S.bo&&!S.rp&&!S.dk&&!S.onb&&S.vsDH===S.hole+'s'){if(!S.aiW)S.aiW=now+(S.aiFast?450:1500);else if(now>S.aiW&&now>(S.aiHold||0)){S.aiW=0;slayShot()}}else S.aiW=0}
 function slayShot(){const p=P();calcHint();const h=S.hint,d=p.drunk;const ci=h.rec;setClub(ci);aimAtPin();let pw=h.pw[ci]||1,acc=0,aimE=0;const pure=Math.random()<.18||!!S.forcePure;S.aiPure=pure;const k=.6+d;
  if(!pure){const r=Math.random();if(ci===4){pw*=r<.55?rand(.5,.85):rand(.95,1.35);aimE=rand(-.1,.1)*k}
   else if(r<.25)pw*=rand(.2,.5);else if(r<.5)acc=rand(.35,.75)*(Math.random()<.8?1:-1)*k;else if(r<.62)aimE=rand(.45,.8)*(Math.random()<.5?1:-1);else{pw*=rand(.78,1.02);acc=rand(-.3,.3)*k}}
@@ -668,7 +670,7 @@ function startTurn(){cineClear();fadeIn();S.rc=null;$('raceHud').style.display='
  if(S.golfer&&S.golfer.parent)S.golfer.parent.remove(S.golfer);S.golfer=makeGolfer(p.c);scene.add(S.golfer);if(p.ai&&S.g5===S.hole)addShades(S.golfer);
  setClub(0);if(course.par===3&&holeDist()<170)setClub(2);aimAtPin();snapCam();calcHint();
  if(S.players.length>1&&!S.vs){S.mode='pass';screen('pass');$('passTxt').textContent=`Pass the phone to ${p.c.name}!`;$('passSub').textContent=`Hole ${S.hole+1}: ${course.name} · Par ${course.par} · Buzz ${Math.round(p.drunk*100)}%`}
- else{beginPlay();if(S.vs){S.aiFast=0;if(p.ai)slaySay(`🍸 Slay tees off first! (tap to fast-forward)`,1800);if(p.ai&&want5())setTimeout(start5,300);else setTimeout(vsDrink,p.ai?1900:700)}}if(S.race&&S.net)raceReady()}
+ else{beginPlay();if(S.vs){S.aiFast=0;if(p.ai)slaySay(`🍸 Slay tees off first! (tap to fast-forward)`,1800);setTimeout(()=>{if(want5()){try5();if(S.cut5)return}setTimeout(vsDrink,p.ai?1600:500)},200)}}if(S.race&&S.net)raceReady()}
 $('bPassGo').onclick=()=>{SFX.click();beginPlay()};
 function beginPlay(){S.mode='play';screen('hud');updHUD();toast(`Hole ${S.hole+1}\n${course.name}\nPar ${course.par}`);S.hints=S.hints||[];S.hints.push('🎯 DARE: '+dareNow().t+' (+20 🪙)');S.hintT=Math.min(S.hintT||0,-1.5);
  if(S.hole===0&&!S.net&&!S.rc){const ob=()=>{if(!LS.get('tutDone',false)){LS.set('tutDone',true);onboard()}};if(!LS.get('htSeen',false)){S.onb=1;showIntro(()=>{S.onb=0;ob()})}else ob()}}
@@ -697,7 +699,7 @@ function drink(d){const p=P();p.ldh=S.hole;$('bDrink').classList.remove('pulse')
  p.drunk=Math.max(0,p.drunk);p.peak=Math.max(p.peak,p.drunk);if(p.st)p.st.maxB=Math.max(p.st.maxB,Math.min(1,p.drunk));
  startChug(d,msg,old)}
 function startChug(d,msg,old){S.cut={t:0,d,msg,dur:d.shot?1.3:1.9,burped:false,old};S.phase='chug';const u=S.golfer.userData;u.can.visible=true;u.club.visible=false;u.canM.color.setHex(d.can);u.can.scale.set(d.shot?.7:d.cup?1.3:d.tall?.85:1,d.shot?.45:d.cup?.8:d.tall?1.9:1,d.shot?.7:d.cup?1.3:d.tall?.85:1);$('skip').style.display='block';$('bottom').style.visibility='hidden';updHUD();if(d.shot){SFX.click();setTimeout(SFX.slam,700);setTimeout(()=>{S.shake=.5;toast('SLAM! 🧊',true,700)},700)}else{SFX.open();setTimeout(SFX.glug,250)}show('drinks',false)}
-function endChug(){const c=S.cut;if(!c)return;S.cut=null;const u=S.golfer.userData;u.can.visible=false;u.club.visible=true;setPose(S.golfer,'address');u.body.rotation.set(0,0,0);$('skip').style.display='none';$('bottom').style.visibility='';S.phase=S.rc&&S.rc.phase!=='run'?'wait':'aim';if(S.vsExtra&&!c.dbl)setTimeout(slay2nd,150);
+function endChug(){const c=S.cut;if(!c)return;S.cut=null;const u=S.golfer.userData;u.can.visible=false;u.club.visible=true;setPose(S.golfer,'address');u.body.rotation.set(0,0,0);$('skip').style.display='none';$('bottom').style.visibility='';S.phase=S.rc&&S.rc.phase!=='run'?'wait':'aim';if(S.vsExtra&&!c.dbl)setTimeout(slay2nd,150);else setTimeout(try5,80);
  const p=P();if(!c.burped){SFX.burp()}if(c.msg)toast(c.msg);else toast(`${c.d.e} ${c.d.n}!`,true);
  if(p.drunk>=1){p.drunk=1;S.shake=1;toast('💀 MAXED OUT');SFX.bad();buzz([100,50,200])}
  const lvl=l=>l<.25?0:l<.5?1:l<.75?2:3;if(lvl(p.drunk)>lvl(c.old))setTimeout(()=>toast(['','Tipsy 🙂','Buzzed 🥴','WASTED 🤪'][lvl(p.drunk)],true),600);
@@ -727,7 +729,7 @@ function calcHint(){if(!course||!P())return;const d=holeDist(),dir=Math.atan2(co
 // ---------- input ----------
 let drag=null;
 canvas.addEventListener('pointerup',e=>{const d=S.barDn;S.barDn=null;if(d&&Math.hypot(e.clientX-d[0],e.clientY-d[1])<10)barTap(e)});
-canvas.addEventListener('pointerdown',e=>{if(S.cut5){end5();return}if(S.vs&&S.mode==='play'&&P()&&P().ai){S.aiFast=1;if(S.phase==='chug')endChug();return}S.barDn=barHit(e)?[e.clientX,e.clientY]:null;if(S.mode==='play'&&S.phase==='chug'){endChug();return}
+canvas.addEventListener('pointerdown',e=>{if(S.cut5){if(performance.now()<(S.cut5.lock||0))return;end5();return}if(S.vs&&S.mode==='play'&&P()&&P().ai){S.aiFast=1;if(S.phase==='chug')endChug();return}S.barDn=barHit(e)?[e.clientX,e.clientY]:null;if(S.mode==='play'&&S.phase==='chug'){endChug();return}
  if(S.mode!=='play')return;if(S.phase==='acc'){shoot();return}if(S.phase==='aim'){drag={x:e.clientX,a:S.aimT=S.aim};show('drinks',false)}});
 canvas.addEventListener('pointermove',e=>{if(drag&&S.phase==='aim'){const h=HV();S.aimT=drag.a+(e.clientX-drag.x)*.006*(S.club===4?.4:1)*((h>.55)!==!!P().teq?-1:1);if(P().teq&&!S.teqQ){S.teqQ=1;toast('🌵 Tequila: left is right!',true,1300)}if(h>.55&&!S.invQ){S.invQ=1;toast('🙃 Controls feel… backwards?',true,1500)}}});
 addEventListener('pointerup',()=>drag=null);
