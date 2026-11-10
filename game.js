@@ -50,21 +50,22 @@ renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x8fd3ff);scene.fog=new THREE.Fog(0x8fd3ff,180,520);
 const camera=new THREE.PerspectiveCamera(60,1,.1,900);
-const hemi=new THREE.HemisphereLight(0xdff3ff,0x4a7a2a,1.1);scene.add(hemi);
-const sun=new THREE.DirectionalLight(0xffffff,1.6);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);
+const hemi=new THREE.HemisphereLight(0xfff2dd,0x4a7a2a,1.15);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xfff0d2,1.55);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);
 Object.assign(sun.shadow.camera,{left:-30,right:30,top:30,bottom:-30,near:1,far:200});scene.add(sun,sun.target);
+const rim=new THREE.DirectionalLight(0x9ec8ff,.55);rim.position.set(-35,18,-40);scene.add(rim);
 // post
 const rt=new THREE.WebGLRenderTarget(4,4);
-const postMat=new THREE.ShaderMaterial({uniforms:{t:{value:rt.texture},d:{value:0},T:{value:0},H:{value:0},R:{value:0},A:{value:0}},
+const postMat=new THREE.ShaderMaterial({uniforms:{t:{value:rt.texture},d:{value:0},T:{value:0},H:{value:0},R:{value:0},A:{value:0},B:{value:0}},
  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
- fragmentShader:`uniform sampler2D t;uniform float d,T,H,R,A;varying vec2 vUv;
+ fragmentShader:`uniform sampler2D t;uniform float d,T,H,R,A,B;varying vec2 vUv;
  void main(){vec2 uv=vUv;uv+=vec2(sin(uv.y*11.+T*2.1),cos(uv.x*8.+T*1.6))*.007*d;vec2 c=uv-.5;float ca=.018*d;
  vec3 col;col.r=texture2D(t,uv+c*ca).r;col.g=texture2D(t,uv).g;col.b=texture2D(t,uv-c*ca).b;
  vec2 off=vec2(sin(T*.7),cos(T*.93))*.03*d*d;col=mix(col,texture2D(t,uv+off).rgb,.38*d);
  float bl=.005*d;vec3 b=(texture2D(t,uv+vec2(bl,0)).rgb+texture2D(t,uv-vec2(bl,0)).rgb+texture2D(t,uv+vec2(0,bl)).rgb+texture2D(t,uv-vec2(0,bl)).rgb)*.25;
  col=mix(col,b,clamp(d*.8,0.,.7));col*=mix(vec3(1.),vec3(1.12,.96,1.06),d);
  float l=dot(col,vec3(.3,.59,.11));col=mix(col,vec3(l)*vec3(.85,1.,.8),H*.55);
- col=mix(col,col*vec3(1.6,.35,.3)+vec3(.15,0.,0.),R*.65);vec3 gA=vec3(col.g*.55+col.b*.2,col.g*1.2+.06,col.r*.35+col.b*.4);col=mix(col,gA,A*(.5+.2*sin(T*3.)));col*=1.-dot(c,c)*(.5+d*1.4+H*.8+R*.8);gl_FragColor=vec4(col,1.);
+ col=mix(col,col*vec3(1.6,.35,.3)+vec3(.15,0.,0.),R*.65);vec3 gA=vec3(col.g*.55+col.b*.2,col.g*1.2+.06,col.r*.35+col.b*.4);col=mix(col,gA,A*(.5+.2*sin(T*3.)));float br=max(col.r,max(col.g,col.b));col+=col*smoothstep(.62,1.,br)*B*.5;col*=1.-dot(c,c)*(.42+d*1.4+H*.8+R*.8+B*.12);gl_FragColor=vec4(col,1.);
  #include <colorspace_fragment>
  }`,depthTest:false,depthWrite:false});
 const postScene=new THREE.Scene(),postCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
@@ -72,25 +73,37 @@ postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),postMat));
 function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w<h?62:50;camera.updateProjectionMatrix();const s=renderer.getDrawingBufferSize(new THREE.Vector2());rt.setSize(s.x,s.y)}
 addEventListener('resize',resize);resize();
 // ---------- helpers ----------
-const M=(c,o={})=>new THREE.MeshLambertMaterial(Object.assign({color:c},o));
+const TOON_GRAD=(()=>{const c=document.createElement('canvas');c.width=4;c.height=1;const x=c.getContext('2d'),d=x.createImageData(4,1);
+ for(const[i,v]of[[0,70],[1,145],[2,220],[3,255]]){d.data[i*4]=d.data[i*4+1]=d.data[i*4+2]=v;d.data[i*4+3]=255}
+ x.putImageData(d,0,0);const t=new THREE.CanvasTexture(c);t.minFilter=t.magFilter=THREE.NearestFilter;return t})();
+let GFX=LS.get('gfx','auto');
+const APP_VER='v32';window.APP_VER=APP_VER;
+const S={mode:'title',players:[],cur:0,hole:0,ballP:new V3(),ballV:new V3(),lastP:new V3(),aim:0,club:0,phase:'aim',power:0,pDir:1,acc:0,aDir:1,t:0,shake:0,flightT:0,golfer:null,cut:null,curve:0,camP:new V3(0,8,15),camL:new V3(),effects:{},spin:0,shotStart:new V3(),swingT:-1,lockedPow:0};
+function useToon(){return GFX!=='low'&&!window.__ttLow}
+function M(c,o={}){const opt=Object.assign({color:c},o);return useToon()?new THREE.MeshToonMaterial(Object.assign({gradientMap:TOON_GRAD},opt)):new THREE.MeshLambertMaterial(opt)}
+const OUT_M=()=>new THREE.MeshBasicMaterial({color:0x1a120e,side:THREE.BackSide});
+function outlineMesh(o,sc=1.065){if(!useToon()||!o||!o.isMesh||o.userData.isOutline||o.userData.ol||!o.geometry)return;if(o.material&&o.material.transparent&&(o.material.opacity||1)<.95)return;
+ const ol=new THREE.Mesh(o.geometry,OUT_M());ol.scale.setScalar(sc);ol.castShadow=false;ol.receiveShadow=false;ol.userData.isOutline=1;o.add(ol);o.userData.ol=ol}
+function outlineGroup(g,sc=1.05){if(!useToon()||!g)return;g.traverse(o=>{if(o.isMesh&&!o.userData.isOutline)outlineMesh(o,sc)})}
+function setOutlines(on){scene.traverse(o=>{if(o.userData&&o.userData.ol)o.userData.ol.visible=!!on})}
 const GT={value:0};const GNT=(()=>{const n=64,c=document.createElement('canvas');c.width=c.height=n;const x=c.getContext('2d'),d=x.createImageData(n,n),r=srand(7),v=[];for(let i=0;i<n*n;i++)v.push(r());
  for(let y=0;y<n;y++)for(let X=0;X<n;X++){let a=0;for(const[dx,dy,w]of[[0,0,.4],[1,0,.15],[-1,0,.15],[0,1,.15],[0,-1,.15]])a+=v[((y+dy+n)%n)*n+(X+dx+n)%n]*w;const q=(y*n+X)*4;d.data[q]=d.data[q+1]=d.data[q+2]=a*255;d.data[q+3]=255}
  x.putImageData(d,0,0);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.minFilter=THREE.LinearMipmapLinearFilter;return{value:t}})();
 // k: 0 rough/ground noise, 1 mowing stripes along d, 2 green checker, 3 sand speckle, 4 water shimmer
-function gMat(col,k,d,a){const m=new THREE.MeshLambertMaterial({color:col,vertexColors:!!(a&&a.vc)});const u={uK:{value:k},uD:{value:new THREE.Vector2(d?d[0]:0,d?d[1]:1)},uA:{value:a&&a.amp!=null?a.amp:1},uT:GT};
+function gMat(col,k,d,a){const m=useToon()?new THREE.MeshToonMaterial({color:col,gradientMap:TOON_GRAD,vertexColors:!!(a&&a.vc)}):new THREE.MeshLambertMaterial({color:col,vertexColors:!!(a&&a.vc)});const u={uK:{value:k},uD:{value:new THREE.Vector2(d?d[0]:0,d?d[1]:1)},uA:{value:a&&a.amp!=null?a.amp:1},uT:GT};
  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,u,{uN:GNT});sh.vertexShader='varying vec2 vGW;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvGW=(modelMatrix*vec4(transformed,1.)).xz;');
   sh.fragmentShader='varying vec2 vGW;uniform float uK,uA,uT;uniform vec2 uD;uniform sampler2D uN;\n'+sh.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
   float gn=texture2D(uN,vGW*.06).r*.55+texture2D(uN,vGW*.017).r*.45,f=1.;gn=clamp((gn-.5)*1.8+.5,0.,1.);
   if(uK<.5)f=.9+.18*gn*uA+(1.-uA)*.08;
-  else if(uK<1.5){float s=clamp(sin(dot(vGW,uD)*.8976)*3.,-1.,1.);f=1.+.055*s+.06*(gn-.5);}
+  else if(uK<1.5){float s=clamp(sin(dot(vGW,uD)*.8976)*3.,-1.,1.);f=1.+.11*s+.04*(gn-.5);}
   else if(uK<2.5){vec2 q=vGW*1.2566;float s=clamp(sin(q.x)*sin(q.y)*4.,-1.,1.);f=1.+.03*s+.04*(gn-.5);}
   else if(uK<3.5){f=.9+.16*texture2D(uN,vGW*.5).r+.06*gn;}
-  else{float w=sin(vGW.x*.7+uT*1.3)+sin(vGW.y*.9-uT*1.1)+sin((vGW.x+vGW.y)*.45+uT*.7)+sin(vGW.x*1.9-vGW.y*1.3+uT*2.)*.5;f=.94+.04*w;diffuseColor.rgb+=vec3(.22,.26,.3)*pow(max(0.,w/3.5),5.);}
+  else{float w=sin(vGW.x*.7+uT*1.3)+sin(vGW.y*.9-uT*1.1)+sin((vGW.x+vGW.y)*.45+uT*.7)+sin(vGW.x*1.9-vGW.y*1.3+uT*2.)*.5;f=.94+.04*w;diffuseColor.rgb+=vec3(.28,.34,.4)*pow(max(0.,w/3.2),4.);float foam=smoothstep(.55,.95,w/3.2);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.92,.97,1.),foam*.45);}
   diffuseColor.rgb*=f;`)};
  m.customProgramCacheKey=()=>'gm'+(a&&a.vc?1:0);return m}
 const matCache={};const MC=c=>matCache[c]||(matCache[c]=M(c));
 function mesh(g,m,x=0,y=0,z=0,p){const o=new THREE.Mesh(g,typeof m==='number'?MC(m):m);o.position.set(x,y,z);o.castShadow=true;if(p)p.add(o);return o}
-const G={sph:new THREE.SphereGeometry(1,24,16),sphL:new THREE.SphereGeometry(1,10,8),cyl:new THREE.CylinderGeometry(1,1,1,16),cone:new THREE.ConeGeometry(1,1,8),box:new THREE.BoxGeometry(1,1,1)};
+const G={sph:new THREE.SphereGeometry(1,32,24),sphL:new THREE.SphereGeometry(1,12,10),cyl:new THREE.CylinderGeometry(1,1,1,20),cone:new THREE.ConeGeometry(1,1,12),box:new THREE.BoxGeometry(1,1,1)};
 // ---------- golfer ----------
 const OPTS={
  skin:['#ffd9b3','#f1c08a','#d99a6c','#a86a43','#6b4228','#8fe07a','#8fc8ff','#ff9ad5'],
@@ -145,11 +158,11 @@ function makeGolfer(c){
  // legs
  const legs=[];for(const s of[-1,1]){const lg=new THREE.Group();lg.position.set(s*.13*sx,hipY,0);root.add(lg);
   if(c.socks==='Dad Socks'){const L=legLen;mesh(new THREE.CapsuleGeometry(.11,L*.3,4,10),pants,0,-L*.2,0,lg);const kn=mesh(G.cyl,skin,0,-L*.47,0,lg);kn.scale.set(.075,L*.2,.075);if(c.tan==='Golf Tan'){const pl=mesh(G.cyl,paleM,0,-L*.555,0,lg);pl.scale.set(.077,.03,.077)}const so=mesh(G.cyl,sockM,0,-L*.78,0,lg);so.scale.set(.085,L*.45,.085);const st2=mesh(G.cyl,MC(0x2b5cff),0,-L*.6,0,lg);st2.scale.set(.087,.025,.087)}
-  else{mesh(new THREE.CapsuleGeometry(.1,legLen-.1,4,10),pants,0,-legLen/2,0,lg);if(c.socks==='Crew'){const so=mesh(G.cyl,sockM,0,-legLen+.03,0,lg);so.scale.set(.085,.12,.085)}}
+  else{mesh(new THREE.CapsuleGeometry(.1,legLen-.1,6,12),pants,0,-legLen/2,0,lg);if(c.socks==='Crew'){const so=mesh(G.cyl,sockM,0,-legLen+.03,0,lg);so.scale.set(.085,.12,.085)}}
   const sh=mesh(G.sph,shoeM,0,-legLen-.04,.07,lg);sh.scale.set(.12,.08,.19);legs.push(lg)}
  const body=new THREE.Group();body.position.y=hipY;root.add(body);
  const hip=mesh(G.sph,pants,0,.05,0,body);hip.scale.set(.27*sx,.17,.22*sx);
- const torso=mesh(new THREE.CapsuleGeometry(.24,.22,6,14),shirt,0,.3*sy,0,body);torso.scale.set(sx,sy,.85*sx);
+ const torso=mesh(new THREE.CapsuleGeometry(.24,.22,8,18),shirt,0,.3*sy,0,body);torso.scale.set(sx,sy,.85*sx);
  let belly=null;if(fat){belly=new THREE.Group();belly.position.set(0,.2,.1*sx);body.add(belly);const gb=mesh(G.sph,shirt,0,0,.06,belly);gb.scale.set(.3*sx*.72,.24+fat*.03,.24+fat*.05);const bb=mesh(G.sph,skin,0,-.13-fat*.01,.18+fat*.04,belly);bb.scale.set(.15*sx*.7,.06,.1)}
  const belt=mesh(G.cyl,dark,0,.12,0,body);belt.scale.set(.245*sx,.04,.21*sx);
  const collar=mesh(new THREE.TorusGeometry(.1,.035,6,16),white,0,.62*sy,0,body);collar.rotation.x=Math.PI/2;
@@ -158,10 +171,12 @@ function makeGolfer(c){
  const head=new THREE.Group();head.position.y=.66*sy+.33*hs;head.scale.setScalar(hs);body.add(head);
  const hd=mesh(G.sph,skin,0,0,0,head);hd.scale.set(.36,.34,.34);
  for(const s of[-1,1]){const e=mesh(G.sph,skin,s*.35,0,0,head);e.scale.set(.06,.09,.06)}
- const nose=mesh(G.sph,skin,0,-.03,.34,head);nose.scale.set(.07,.06,.06);
+ const nose=mesh(G.sph,skin,0,-.02,.36,head);nose.scale.set(.075,.065,.07);
  const eyes=[],lids=[];
- for(const s of[-1,1]){const e=mesh(G.sph,white,s*.12,.06,.28,head);e.scale.set(.075,.09,.05);const p=mesh(G.sph,dark,s*.115,.055,.325,head);p.scale.set(.035,.045,.02);eyes.push(p);
-  const l=mesh(new THREE.SphereGeometry(1,16,8,0,Math.PI*2,0,Math.PI/2),skin,s*.12,.06,.285,head);l.scale.set(.082,.098,.056);l.rotation.x=-1.6;lids.push(l)}
+ for(const s of[-1,1]){const e=mesh(G.sph,white,s*.125,.07,.3,head);e.scale.set(.11,.125,.07);const ir=mesh(G.sph,MC(0x2a1a12),s*.12,.065,.35,head);ir.scale.set(.058,.062,.032);const p=mesh(G.sph,dark,s*.118,.068,.372,head);p.scale.set(.032,.036,.018);eyes.push(p);
+  const hl=mesh(G.sph,white,s*.14,.095,.38,head);hl.scale.set(.022,.026,.014);hl.castShadow=false;
+  const br=mesh(G.box,MC(c.hairC||'#4a2c15'),s*.13,.16,.3,head);br.scale.set(.07,.014,.02);br.rotation.z=s*-.18;
+  const l=mesh(new THREE.SphereGeometry(1,20,10,0,Math.PI*2,0,Math.PI/2),skin,s*.125,.07,.305,head);l.scale.set(.1,.118,.065);l.rotation.x=-1.6;lids.push(l)}
  const cheeks=[];
  const mouthG=new THREE.Group();mouthG.position.set(0,-.15,.31);head.add(mouthG);
  const fm={Grin:()=>{const m=mesh(new THREE.SphereGeometry(1,16,8,0,Math.PI*2,Math.PI/2,Math.PI/2),dark,0,.02,0,mouthG);m.scale.set(.1,.07,.03);const t=mesh(G.box,white,0,.012,.015,mouthG);t.scale.set(.13,.02,.02)},
@@ -195,7 +210,7 @@ function makeGolfer(c){
   'Bowl Cut':()=>{const a=mesh(new THREE.SphereGeometry(1,16,8,0,Math.PI*2,0,Math.PI*.5),hairM,0,.04,0,head);a.scale.set(.4,.4,.39);const f=mesh(G.cyl,hairM,0,.06,0,head);f.scale.set(.4,.06,.39)},
   Spiky:()=>{hr.Short();if(capd)return;for(let k=0;k<8;k++){const a=k/8*Math.PI*2;const m=mesh(G.cone,hairM,Math.cos(a)*.17,.33,Math.sin(a)*.15-.03,head);m.scale.set(.07,.2,.07);m.rotation.set(Math.sin(a)*.6,0,-Math.cos(a)*.6)}mesh(G.cone,hairM,0,.42,0,head).scale.set(.07,.2,.07)},
   'Comb-Over':()=>{for(const s of[-1,1]){const m=mesh(G.sph,hairM,s*.31,.02,-.08,head);m.scale.set(.08,.13,.22)}const b=mesh(G.sph,hairM,0,-.02,-.28,head);b.scale.set(.25,.13,.08);if(capd)return;const cg=new THREE.Group();cg.position.set(-.3,.2,0);head.add(cg);for(const[z,w]of[[-.06,.1],[.06,.09]]){const sd=mesh(G.sphL,hairM,.27,.13,z,cg);sd.scale.set(.32,.035,w);sd.rotation.z=-.38}comb=cg},
-  Slay:()=>{for(const s of[-1,1]){const a=mesh(new THREE.SphereGeometry(1,16,8,s>0?0:Math.PI,Math.PI,0,Math.PI*.5),hairM,s*.03,.13,-.03,head);a.scale.set(.41,.34,.42);a.rotation.y=-Math.PI/2;const sd=mesh(G.sph,hairM,s*.37,-.28,-.1,head);sd.scale.set(.075,.56,.15);sd.rotation.z=s*.06}const b=mesh(G.sph,hairM,0,-.24,-.22,head);b.scale.set(.37,.54,.2)},
+  Slay:()=>{for(const s of[-1,1]){const a=mesh(new THREE.SphereGeometry(1,24,12,s>0?0:Math.PI,Math.PI,0,Math.PI*.55),hairM,s*.02,.15,-.02,head);a.scale.set(.44,.38,.45);a.rotation.y=-Math.PI/2;const sd=mesh(G.sph,hairM,s*.35,-.36,-.06,head);sd.scale.set(.1,.7,.17);sd.rotation.z=s*.04;const mid=mesh(G.sph,hairM,s*.32,-.55,-.02,head);mid.scale.set(.08,.28,.12);const tip=mesh(G.sph,hairM,s*.3,-.78,0,head);tip.scale.set(.06,.2,.09)}const bang=mesh(new THREE.SphereGeometry(1,16,8,0,Math.PI*2,0,Math.PI*.5),hairM,0,.16,.22,head);bang.scale.set(.36,.12,.18);const b=mesh(G.sph,hairM,0,-.3,-.26,head);b.scale.set(.4,.62,.24)},
   Bald:()=>{},None:()=>{}};
  const capd=!['None','Halo','Party'].includes(c.hat);let comb=null;
  (hr[c.hair]||hr.Short)();
@@ -218,7 +233,9 @@ function makeGolfer(c){
  const swing=new THREE.Group();swing.position.set(0,.5*sy,fat?.08+fat*.08:0);body.add(swing);
  const armLen=.4*(.85+ll*.15);
  function mkArm(s){const a=new THREE.Group();a.position.set(s*.27*sx,0,0);swing.add(a);mesh(G.sph,shirt,0,0,0,a).scale.setScalar(.1);
-  mesh(new THREE.CapsuleGeometry(.065,armLen-.08,4,8),shirt,0,-armLen/2,0,a);const h=mesh(G.sph,skin,0,-armLen,0,a);h.scale.set(.085,.095,.085);const th=mesh(G.sph,skin,s*-.05,-armLen+.03,.04,a);th.scale.setScalar(.04);return a}
+  mesh(new THREE.CapsuleGeometry(.07,armLen-.08,6,12),shirt,0,-armLen/2,0,a);const h=mesh(G.sph,skin,0,-armLen,0,a);h.scale.set(.09,.1,.09);
+  for(let i=0;i<3;i++){const f=mesh(G.sph,skin,s*(-.02+i*.02),-armLen-.05,.04+i*.01,a);f.scale.set(.03,.045,.03)}
+  const th=mesh(G.sph,skin,s*-.06,-armLen+.02,.05,a);th.scale.setScalar(.045);return a}
  const armL=mkArm(-1),armR=mkArm(1);
  const club=new THREE.Group();club.position.set(0,-armLen+.02,.22);swing.add(club);club.rotation.x=-.7;
  const grip=mesh(G.cyl,dark,0,-.05,0,club);grip.scale.set(.025,.16,.025);
@@ -230,7 +247,7 @@ function makeGolfer(c){
  if(c.tan==='Golf Tan'){const hl=armL.children[2];if(hl)hl.material=MC(0xffffff)}
  let vg=null;if(c.prop==='vodka'){vg=new THREE.Group();vg.position.set(0,-armLen-.02,.09);armL.add(vg);const gl=new THREE.Mesh(new THREE.CylinderGeometry(.065,.05,.16,14),new THREE.MeshStandardMaterial({color:0xdff6ff,transparent:true,opacity:.45,roughness:.1}));vg.add(gl);mesh(new THREE.CylinderGeometry(.056,.046,.11,14),M(0xfff3c8),0,-.02,0,vg);const lm=mesh(G.sph,MC(0x7ed957),.05,.08,0,vg);lm.scale.set(.035,.035,.012);mesh(G.cyl,MC(0xff4d8d),-.02,.1,0,vg).scale.set(.008,.12,.008)}
  root.userData={body,head,legs,armL,armR,swing,club,can,canM,hat,eyes,lids,cheeks,mouthG,c,armLen,belly,bv:0,bx:0,comb,cv:0,cx:0,fat,vg};
- setPose(root,'address');return root;
+ setPose(root,'address');outlineGroup(root,1.06);return root;
 }
 function setPose(g,p){const u=g.userData;u.swing.rotation.set(0,0,0);u.head.rotation.set(0,0,0);
  if(p==='address'){u.armL.rotation.set(-.45,0,-.38);u.armR.rotation.set(-.45,0,.38)}
@@ -395,18 +412,18 @@ function decorate(h,R){S.decor=[];if(GFX==='low')S.lowG=1;const D=DEC[TH.lava?'v
   bw.position.set(5,fy(5,-4.5),-4.5);courseG.add(bw);trees.push({x:5,z:-4.5,y:fy(5,-4.5),r:.4,h:1.6,g:bw})}
  if(S.lowG)for(const d of S.decor)d.visible=false}
 // graphics: 'auto' (drop to low if fps stays low), 'high', 'low'
-let GFX=LS.get('gfx','auto');const DPR=Math.min(devicePixelRatio,2);
-function setLowG(on){S.lowG=on?1:0;sun.castShadow=!on;renderer.setPixelRatio(on?Math.min(DPR,1.5):DPR);resize();for(const d of S.decor||[])d.visible=!on;if(on)for(const t of trees)if(t.sw&&t.g)t.g.rotation.set(0,t.g.rotation.y,0)}
+const DPR=Math.min(devicePixelRatio,2);
+function setLowG(on){window.__ttLow=on?1:0;S.lowG=on?1:0;sun.castShadow=!on;rim.intensity=on?0:.55;renderer.setPixelRatio(on?Math.min(DPR,1.5):DPR);resize();for(const d of S.decor||[])d.visible=!on;setOutlines(!on);if(on){if(S.clouds)S.clouds.visible=false;for(const t of trees)if(t.sw&&t.g)t.g.rotation.set(0,t.g.rotation.y,0)}else if(S.clouds)S.clouds.visible=true}
 const fpsW={t:0,n:0,bad:0};
 function gfxTick(dt,t){if(!fpsW.init){fpsW.init=1;if(GFX==='low')setLowG(1)}if(GFX==='auto'&&!S.lowG&&!document.hidden&&(S.mode==='play'||S.mode==='title')){const nw=performance.now();if(!fpsW.p||nw-fpsW.p>500)fpsW.t=fpsW.n=0;else fpsW.t+=(nw-fpsW.p)/1000;fpsW.p=nw;fpsW.n++;if(fpsW.t>=3){const fps=fpsW.n/fpsW.t;S.fps=Math.round(fps);fpsW.bad=fps<24?fpsW.bad+1:0;fpsW.t=fpsW.n=0;if(fpsW.bad>=2){setLowG(1);S.lowAuto=1}}}
  if(!S.lowG){const ws=course&&course.wind?course.wind.s:2,A=.012+ws*.0025;for(const tr of trees)if(tr.sw){const g=tr.g;g.rotation.x=Math.sin(t*1.1+tr.x*.31)*A;g.rotation.z=Math.cos(t*.9+tr.z*.27)*A}}}
 let pinG,flag,windmill=null,cartObj=null,trees=[],hills=[];
 const GLOWC=[0xff2bd6,0x00e5ff,0xfff04a,0x7dff4a];
-function makeCactus(x,z,s){const g=new THREE.Group();const cm=MC(0x3f8f3a);const tr=mesh(new THREE.CapsuleGeometry(.55*s,4*s,4,8),cm,0,2.6*s,0,g);for(const k of[-1,1]){const h=1.4+Math.abs(x*3+z)%1.2;const a=mesh(new THREE.CapsuleGeometry(.35*s,1*s,4,8),cm,k*1*s,h*s,0,g);a.rotation.z=k*Math.PI/2;const u=mesh(new THREE.CapsuleGeometry(.35*s,1.3*s,4,8),cm,k*1.6*s,(h+.8)*s,0,g)}mesh(G.sph,MC(0xff5fa0),0,5.2*s,0,g).scale.setScalar(.35*s);g.position.set(x,GY(x,z),z);g.rotation.y=x*.7;courseG.add(g);trees.push({x,z,y:GY(x,z),r:.9*s,h:5.5*s,g})}
-function makeTree(x,z,s){if(TH.tree==='cactus')return makeCactus(x,z,s);if(TH.tree==='charred'){const g=new THREE.Group(),tm=MC(0x1a1411);mesh(G.cyl,tm,0,2.2*s,0,g).scale.set(.32*s,4.4*s,.32*s);for(const k of[-1,1]){const br=mesh(G.cyl,tm,k*.55*s,3.4*s,0,g);br.scale.set(.13*s,1.9*s,.13*s);br.rotation.z=-k*.85}mesh(G.sph,new THREE.MeshBasicMaterial({color:0xff6a10}),0,.35*s,.28*s,g).scale.setScalar(.12*s);g.position.set(x,GY(x,z),z);g.rotation.y=x*.9;courseG.add(g);trees.push({x,z,y:GY(x,z),r:.5*s,h:4.6*s,g});return}const g=new THREE.Group();mesh(G.cyl,TH.night?0x2a1a10:0x7a4b25,0,1.5*s,0,g).scale.set(.35*s,3*s,.35*s);const pal=TH.night?[0x0f3a22,0x123f2a,0x0c3020]:TH.snow?[0x2a6a4a,0x2f7a52,0x245e40]:[0x2e8b3a,0x3fa34d,0x267a33];const c=pal[Math.floor(Math.abs(x*7+z)%3)];const a=mesh(G.cone,c,0,4.5*s,0,g);a.scale.set(2.2*s,4*s,2.2*s);const b=mesh(G.cone,c,0,6.6*s,0,g);b.scale.set(1.6*s,3*s,1.6*s);
+function makeCactus(x,z,s){const g=new THREE.Group();const cm=M(0x3f8f3a);const tr=mesh(new THREE.CapsuleGeometry(.55*s,4*s,4,8),cm,0,2.6*s,0,g);for(const k of[-1,1]){const h=1.4+Math.abs(x*3+z)%1.2;const a=mesh(new THREE.CapsuleGeometry(.35*s,1*s,4,8),cm,k*1*s,h*s,0,g);a.rotation.z=k*Math.PI/2;const u=mesh(new THREE.CapsuleGeometry(.35*s,1.3*s,4,8),cm,k*1.6*s,(h+.8)*s,0,g)}mesh(G.sph,MC(0xff5fa0),0,5.2*s,0,g).scale.setScalar(.35*s);outlineGroup(g,1.04);g.position.set(x,GY(x,z),z);g.rotation.y=x*.7;courseG.add(g);trees.push({x,z,y:GY(x,z),r:.9*s,h:5.5*s,g})}
+function makeTree(x,z,s){if(TH.tree==='cactus')return makeCactus(x,z,s);if(TH.tree==='charred'){const g=new THREE.Group(),tm=MC(0x1a1411);mesh(G.cyl,tm,0,2.2*s,0,g).scale.set(.32*s,4.4*s,.32*s);for(const k of[-1,1]){const br=mesh(G.cyl,tm,k*.55*s,3.4*s,0,g);br.scale.set(.13*s,1.9*s,.13*s);br.rotation.z=-k*.85}mesh(G.sph,new THREE.MeshBasicMaterial({color:0xff6a10}),0,.35*s,.28*s,g).scale.setScalar(.12*s);outlineGroup(g,1.04);g.position.set(x,GY(x,z),z);g.rotation.y=x*.9;courseG.add(g);trees.push({x,z,y:GY(x,z),r:.5*s,h:4.6*s,g});return}const g=new THREE.Group();mesh(G.cyl,TH.night?0x2a1a10:0x7a4b25,0,1.5*s,0,g).scale.set(.38*s,3*s,.38*s);const pal=TH.night?[0x0f3a22,0x123f2a,0x0c3020]:TH.snow?[0x2a6a4a,0x2f7a52,0x245e40]:[0x2e8b3a,0x3fa34d,0x267a33];const c=pal[Math.floor(Math.abs(x*7+z)%3)];const a=mesh(G.cone,c,0,4.5*s,0,g);a.scale.set(2.3*s,4.1*s,2.3*s);const b=mesh(G.cone,c,0,6.6*s,0,g);b.scale.set(1.65*s,3.1*s,1.65*s);const top=mesh(G.sph,c,0,8.1*s,0,g);top.scale.set(1.05*s,1.1*s,1.05*s);
  if(TH.snow){const w=mesh(G.cone,0xffffff,0,7.6*s,0,g);w.scale.set(1.05*s,1.6*s,1.05*s);const w2=mesh(G.cone,0xf4f8ff,0,5.4*s,0,g);w2.scale.set(1.9*s,1.1*s,1.9*s)}
  if(TH.night){for(let k=0;k<5;k++){const a2=k*2.4+x,hh=3.2+k*.8;const o=mesh(G.sphL,new THREE.MeshBasicMaterial({color:GLOWC[(k+Math.floor(Math.abs(z)))%4]}),Math.cos(a2)*(2-k*.3)*s,hh*s,Math.sin(a2)*(2-k*.3)*s,g);o.scale.setScalar(.22*s);o.castShadow=false}}
- g.position.set(x,GY(x,z),z);courseG.add(g);trees.push({x,z,y:GY(x,z),r:1.6*s,h:8.5*s,g,sw:1})}
+ outlineGroup(g,1.04);g.position.set(x,GY(x,z),z);courseG.add(g);trees.push({x,z,y:GY(x,z),r:1.6*s,h:8.5*s,g,sw:1})}
 const CARTSK={classic:[0xffffff,0x1b6b3a,0x8b2b2b],fire:[0xd81e1e,0x161616,0x222222],gold:[0xd4af37,0xfff2c0,0x6b3e1e],camo:[0x4b5d2a,0x2f3a1c,0x6b5a3a],pink:[0xff7ac8,0xffffff,0x9a3cff],neon:[0x15152a,0x00ffcc,0xff2bd6]};
 function makeCart(sk){const [bc,rc,sc]=CARTSK[sk]||CARTSK.classic;const g=new THREE.Group();const body=new THREE.Group();body.position.y=.55;g.add(body);
  const bm=M(bc,sk==='gold'?{emissive:0x332200}:{}),dm=MC(0x222222),sm=M(sc),chrome=MC(0xc8c8c8);
@@ -426,7 +443,7 @@ function makeCart(sk){const [bc,rc,sc]=CARTSK[sk]||CARTSK.classic;const g=new TH
  for(const s2 of[-1,1]){const h=mesh(G.sph,hl,s2*.55,.5,1.75,body);h.scale.set(.16,.13,.07);h.castShadow=false;const t2=mesh(G.box,tl,s2*.6,.45,-1.64,body);t2.scale.set(.25,.12,.04)}
  const wheels=[],front=[];for(const[x,z,fr]of[[-.9,1.12,1],[.9,1.12,1],[-.9,-1.12,0],[.9,-1.12,0]]){const piv=new THREE.Group();piv.position.set(x,.38,z);g.add(piv);const spin=new THREE.Group();piv.add(spin);
   const t=mesh(G.cyl,MC(0x161616),0,0,0,spin);t.scale.set(.38,.26,.38);t.rotation.z=Math.PI/2;const hub=mesh(G.cyl,sk==='gold'?MC(0xffd700):MC(0xdddddd),Math.sign(x)*.135,0,0,spin);hub.scale.set(.2,.02,.2);hub.rotation.z=Math.PI/2;mesh(G.box,MC(0x777777),Math.sign(x)*.145,0,0,spin).scale.set(.02,.34,.07);wheels.push(spin);if(fr)front.push(piv)}
- g.userData={body,wheels,front,sw,hl};return g}
+ g.userData={body,wheels,front,sw,hl};outlineGroup(g,1.035);return g}
 function buildHole(i){
  toastClear();const keepG=new Set([...Object.values(G),pGeo]),keepM=new Set([...Object.values(matCache),LAVA]);courseG.traverse(o=>{if(o.geometry&&!keepG.has(o.geometry))o.geometry.dispose();const ms=o.material?[].concat(o.material):[];for(const m of ms)if(!keepM.has(m)){if(m.map&&m!==LAVA)m.map.dispose();m.dispose()}});
  while(courseG.children.length)courseG.remove(courseG.children[0]);trees=[];hills=[];windmill=null;cartObj=null;
@@ -448,7 +465,7 @@ function buildHole(i){
  const tb=mesh(G.box,gMat(0x8fe060,1,[0,1]),0,HT+.05,0,courseG);tb.scale.set(7,.12,7);tb.receiveShadow=true;
  for(const s of[-1,1]){const m=mesh(G.sph,0xff4040,s*2.5,HT+.3,-2,courseG);m.scale.setScalar(.3)}
  pinG=new THREE.Group();pinG.position.set(h.pin[0],HP,h.pin[1]);mesh(G.cyl,0xffffff,0,3,0,pinG).scale.set(.06,6,.06);
- flag=mesh(new THREE.PlaneGeometry(1.6,1,4,1),TH.night?new THREE.MeshBasicMaterial({color:0xff2bd6,side:THREE.DoubleSide}):new THREE.MeshLambertMaterial({color:0xff3030,side:THREE.DoubleSide}),.8,5.4,0,pinG);courseG.add(pinG);S.bar=null;if((i+CI)%2===0&&h.path&&h.path.length>1){const g=new THREE.Group();const bd=mesh(G.box,0xffffff,0,.9,0,g);bd.scale.set(2.2,1.1,1.3);const tp=mesh(G.box,0x3ccf6e,0,1.5,0,g);tp.scale.set(2.3,.12,1.4);for(const[x,z]of[[-.8,-.6],[.8,-.6],[-.8,.6],[.8,.6]]){const w=mesh(G.cyl,0x222222,x,.3,z,g);w.scale.set(.32,.2,.32);w.rotation.x=Math.PI/2;w.position.y=.32}const po=mesh(G.cyl,0xdddddd,0,2.4,0,g);po.scale.set(.05,1.8,.05);const um=new THREE.Mesh(new THREE.ConeGeometry(1.8,.8,8),new THREE.MeshLambertMaterial({color:0xff4060}));um.position.y=3.4;g.add(um);for(const[x,c]of[[-.6,0xff8c1a],[0,0xe8b030],[.6,0x9fe4ff]]){const bt=mesh(G.cyl,c,x,1.85,0,g);bt.scale.set(.18,.6,.18)}g.scale.setScalar(1.6);courseG.add(g);S.bar={g,path:h.path}}S.fakeF=[0,1].map(i=>{const g=pinG.clone(true);g.traverse(o=>{if(o.material){o.material=o.material.clone();o.material.transparent=true;o.material.opacity=0}});g.visible=false;courseG.add(g);return g});S.fakeP=[];S.gogA=0;
+ flag=mesh(new THREE.PlaneGeometry(1.6,1,4,1),TH.night?new THREE.MeshBasicMaterial({color:0xff2bd6,side:THREE.DoubleSide}):M(0xff3030,{side:THREE.DoubleSide}),.8,5.4,0,pinG);courseG.add(pinG);outlineGroup(pinG,1.06);S.bar=null;if((i+CI)%2===0&&h.path&&h.path.length>1){const g=new THREE.Group();const bd=mesh(G.box,0xffffff,0,.9,0,g);bd.scale.set(2.2,1.1,1.3);const tp=mesh(G.box,0x3ccf6e,0,1.5,0,g);tp.scale.set(2.3,.12,1.4);for(const[x,z]of[[-.8,-.6],[.8,-.6],[-.8,.6],[.8,.6]]){const w=mesh(G.cyl,0x222222,x,.3,z,g);w.scale.set(.32,.2,.32);w.rotation.x=Math.PI/2;w.position.y=.32}const po=mesh(G.cyl,0xdddddd,0,2.4,0,g);po.scale.set(.05,1.8,.05);const um=new THREE.Mesh(new THREE.ConeGeometry(1.8,.8,8),new THREE.MeshLambertMaterial({color:0xff4060}));um.position.y=3.4;g.add(um);for(const[x,c]of[[-.6,0xff8c1a],[0,0xe8b030],[.6,0x9fe4ff]]){const bt=mesh(G.cyl,c,x,1.85,0,g);bt.scale.set(.18,.6,.18)}g.scale.setScalar(1.6);courseG.add(g);S.bar={g,path:h.path}}S.fakeF=[0,1].map(i=>{const g=pinG.clone(true);g.traverse(o=>{if(o.material){o.material=o.material.clone();o.material.transparent=true;o.material.opacity=0}});g.visible=false;courseG.add(g);return g});S.fakeP=[];S.gogA=0;
  const R=srand(h.seed*977);
  // trees along both sides
  for(let k=0;k<h.full.length-1;k++){const a=h.full[k],b=h.full[k+1],l=Math.hypot(b[0]-a[0],b[1]-a[1]),nx=-(b[1]-a[1])/l,nz=(b[0]-a[0])/l;
@@ -479,7 +496,14 @@ function buildHole(i){
 }
 let fakeHoles=[],hotTub=null,amb=null;
 const cloudMats={};function cloudMat(){return cloudMats[TH.cloud]||(cloudMats[TH.cloud]=new THREE.MeshBasicMaterial({color:TH.cloud,fog:false}))}
-function applyTheme(){scene.background=new THREE.Color(TH.sky);scene.fog.color.setHex(TH.sky);scene.fog.near=TH.fog?TH.fog[0]:TH.night?90:TH.lava?110:180;scene.fog.far=TH.fog?TH.fog[1]:TH.night?380:TH.lava?480:520;hemi.color.setHex(TH.hemi[0]);hemi.groundColor.setHex(TH.hemi[1]);hemi.intensity=TH.hemi[2];sun.intensity=TH.sun;sun.color.setHex(TH.sunC||(TH.night?0x9aa0ff:TH.lava?0xffb488:0xffffff))}
+function mkSkyTex(top,bot,cloud){const c=document.createElement('canvas');c.width=4;c.height=256;const x=c.getContext('2d'),g=x.createLinearGradient(0,0,0,256),T=new THREE.Color(top),B=new THREE.Color(bot);
+ g.addColorStop(0,'#'+T.getHexString());g.addColorStop(.55,'#'+T.clone().lerp(B,.35).getHexString());g.addColorStop(1,'#'+B.getHexString());x.fillStyle=g;x.fillRect(0,0,4,256);
+ if(cloud!=null){const cc=new THREE.Color(cloud);x.fillStyle='#'+cc.getHexString();x.globalAlpha=TH.night?.25:.45;for(let i=0;i<10;i++){const yy=30+((i*37)%140);x.beginPath();x.ellipse(2,yy,3,5+(i%3)*2,0,0,6.28);x.fill()}x.globalAlpha=1}
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.magFilter=THREE.LinearFilter;t.minFilter=THREE.LinearMipmapLinearFilter;return t}
+function applyTheme(){const bot=TH.night?0x12183a:TH.lava?0xb07050:TH.snow?0xe8f2fa:TH.sky;scene.background=mkSkyTex(TH.sky,bot,TH.cloud);scene.fog.color.setHex(TH.sky);scene.fog.near=TH.fog?TH.fog[0]:TH.night?90:TH.lava?110:180;scene.fog.far=TH.fog?TH.fog[1]:TH.night?380:TH.lava?480:520;hemi.color.setHex(TH.hemi[0]);hemi.groundColor.setHex(TH.hemi[1]);hemi.intensity=TH.hemi[2]*(useToon()?1.05:1);sun.intensity=TH.sun;sun.color.setHex(TH.sunC||(TH.night?0x9aa0ff:TH.lava?0xffb488:0xfff2d8));rim.color.setHex(TH.night?0x6688ff:0xb8dcff);rim.intensity=useToon()?.55:0;
+ if(S.clouds){scene.remove(S.clouds);S.clouds=null}if(useToon()&&!TH.lava){const cg=new THREE.Group();const cm=new THREE.MeshBasicMaterial({color:TH.cloud||0xffffff,transparent:true,opacity:TH.night?.35:.7,depthWrite:false});
+  for(let i=0;i<7;i++){const p=new THREE.Group();for(let k=0;k<3;k++){const m=new THREE.Mesh(G.sph,cm);m.scale.set(8+k*3,4+k,6+k*2);m.position.set(k*5-4,0,k*2);p.add(m)}p.position.set((i-3)*55,42+((i*17)%12),(i%2?1:-1)*70-40);cg.add(p)}
+  scene.add(cg);S.clouds=cg}}
 let ballPupil=null;
 function applyBallSkin(){const k=EQ().ball,bm=ball.material;const C={white:[0xffffff,0x333333],gold:[0xffd700,0x664400],neon:[0x7dff4a,0x33aa00],eye:[0xffffff,0x333333],disco:[0xdddddd,0x444444]}[k]||[0xffffff,0x333333];bm.color.setHex(C[0]);bm.emissive.setHex(TH.night?(k==='white'?0x55ffcc:C[0]):C[1]);
  if(!ballPupil){ballPupil=new THREE.Group();const ir=mesh(G.sph,0x1f8fff,0,0,.22,ballPupil);ir.scale.set(.13,.13,.07);const pu=mesh(G.sph,0x111111,0,0,.26,ballPupil);pu.scale.set(.07,.07,.04);ball.add(ballPupil)}ballPupil.visible=k==='eye';
@@ -524,8 +548,6 @@ const REST={green:.22,fairway:.3,rough:.18,sand:.04,ice:.5},KEEP={green:.5,fairw
 const windRes=()=>EQ().club==='neon'?.85:1;
 function lieMult(c,s){if(c.id==='putter')return 1;return s==='sand'?(c.id==='wedge'?.85:.6):s==='rough'?.88:s==='ice'?.95:1}
 // ---------- game state ----------
-const APP_VER='v31';window.APP_VER=APP_VER;
-const S={mode:'title',players:[],cur:0,hole:0,ballP:new V3(),ballV:new V3(),lastP:new V3(),aim:0,club:0,phase:'aim',power:0,pDir:1,acc:0,aDir:1,t:0,shake:0,flightT:0,golfer:null,cut:null,curve:0,camP:new V3(0,8,15),camL:new V3(),effects:{},spin:0,shotStart:new V3(),swingT:-1,lockedPow:0};
 const P=()=>S.players[S.cur];const HV=()=>{const p=P();return p?clamp((p.drunk-.5)/.5,0,1):0};
 // ---------- UI build ----------
 function show(id,on=true){$(id).classList.toggle('show',on)}
@@ -1055,10 +1077,10 @@ function frame(now){requestAnimationFrame(frame);let dt=Math.min(.05,(now-last)/
  camera.lookAt(S.camL);camera.rotateZ((S.deckTh||0)*3+Math.sin(t*.8)*dr*.12+Math.sin(t*2.1)*dr*.03+Math.sin(t*.25)*.45*hv);
  GT.value=t;gfxTick(dt,t);{const cs=S.cartS;slayTick();engSet(!!(myCart&&cs&&!cs.done&&S.mode!=='paused'&&!document.hidden),myCart&&ctl.gas?1:0,cs?cs.v||0:0)}if((S.hudT=(S.hudT||0)+dt)>.25){S.hudT=0;hudLayout()}sun.position.set(S.camL.x+30,60,S.camL.z+20);sun.target.position.copy(S.camL);
  if(S.flash>0)S.flash=Math.max(0,S.flash-dt*3);$('flash').style.opacity=S.flash*.6;
- const H=p.hang?1:0;const pd=S.mode==='title'?.15:dr;const Rr=Math.max(0,Math.min(1,(S.redT||0)/1.5)),Aa=absOn?.85:0;postMat.uniforms.R.value=Rr;postMat.uniforms.A.value=Aa;
+ const H=p.hang?1:0;const pd=S.mode==='title'?.15:dr;const Rr=Math.max(0,Math.min(1,(S.redT||0)/1.5)),Aa=absOn?.85:0;postMat.uniforms.R.value=Rr;postMat.uniforms.A.value=Aa;postMat.uniforms.B.value=(GFX==='high'&&!S.lowG)?.55:0;
  if(S.pumpCam&&!S.cut5&&S.golfer){if(performance.now()<S.pumpCam&&S.mode==='play'){const h=S.golfer.userData.head,hw=h.getWorldPosition(new V3());camera.position.copy(h.localToWorld(new V3(.9,-.6,4.2)));camera.lookAt(hw.x,hw.y-.35,hw.z)}else{S.pumpCam=0;snapCam()}}
  if(S.cut5&&S.golfer){const k=Math.min(1,(performance.now()-S.cut5.t0)/1300),e=1-Math.pow(1-k,3),h=S.golfer.userData.head,hw=h.getWorldPosition(new V3());const cp=h.localToWorld(new V3(.45*(1-e),.12+.4*(1-e),2.5+7*(1-e)));camera.position.copy(cp);camera.lookAt(hw.x,hw.y+.06,hw.z)}
- if(pd<.02&&!H&&!Rr&&!Aa){renderer.setRenderTarget(null);renderer.render(scene,camera)}else{renderer.setRenderTarget(rt);renderer.render(scene,camera);renderer.setRenderTarget(null);postMat.uniforms.d.value=pd;postMat.uniforms.T.value=t;postMat.uniforms.H.value=H;renderer.render(postScene,postCam)}
+ if(pd<.02&&!H&&!Rr&&!Aa&&!(GFX==='high'&&!S.lowG)){renderer.setRenderTarget(null);renderer.render(scene,camera)}else{renderer.setRenderTarget(rt);renderer.render(scene,camera);renderer.setRenderTarget(null);postMat.uniforms.d.value=pd;postMat.uniforms.T.value=t;postMat.uniforms.H.value=H;renderer.render(postScene,postCam)}
 }
 requestAnimationFrame(frame);
 // orientation lock where supported
