@@ -524,7 +524,7 @@ const REST={green:.22,fairway:.3,rough:.18,sand:.04,ice:.5},KEEP={green:.5,fairw
 const windRes=()=>EQ().club==='neon'?.85:1;
 function lieMult(c,s){if(c.id==='putter')return 1;return s==='sand'?(c.id==='wedge'?.85:.6):s==='rough'?.88:s==='ice'?.95:1}
 // ---------- game state ----------
-const APP_VER='v30';window.APP_VER=APP_VER;
+const APP_VER='v31';window.APP_VER=APP_VER;
 const S={mode:'title',players:[],cur:0,hole:0,ballP:new V3(),ballV:new V3(),lastP:new V3(),aim:0,club:0,phase:'aim',power:0,pDir:1,acc:0,aDir:1,t:0,shake:0,flightT:0,golfer:null,cut:null,curve:0,camP:new V3(0,8,15),camL:new V3(),effects:{},spin:0,shotStart:new V3(),swingT:-1,lockedPow:0};
 const P=()=>S.players[S.cur];const HV=()=>{const p=P();return p?clamp((p.drunk-.5)/.5,0,1):0};
 // ---------- UI build ----------
@@ -646,7 +646,7 @@ function softD(p){return p&&p.drunk>.5?1-.28*Math.min(1,(p.drunk-.5)/.3):1}
 function want5(){const hu=S.players.find(p=>!p.ai);if(!S.vs||S.g5Done||!hu)return 0;if(hu.drunk>=.5||S.force5)S.w5=1;const mid=Math.max(0,Math.min(Math.floor((HOLES.length-1)/2),HOLES.length-2));if(S.hole>=mid)S.w5=1;return!!(S.w5||S.force5)}
 function try5(){if(!want5()||S.cut5||S.mode!=='play')return;if(S.phase!=='aim'||S.cut||S.bo||S.rp||S.dk||S.onb||S.vsExtra)return;if(performance.now()<(S.aiHold||0))return;start5()}
 function start5(ms){S.g5Done=1;S.g5=S.hole;S.cut5={t0:performance.now(),lock:performance.now()+1600};addShades(S.golfer);document.body.classList.add('cut5');
- slaySay('😎😎😎😎😎 "'+(S.hole===4?'5th hole, number 5.':'Hole number '+(S.hole+1)+'.')+' I got 5 pairs of sunglasses for 5 bucks."',5200,1);$('slayBub').classList.add('big5');
+ slaySay('😎😎😎😎😎 "I got 5 pairs of sunglasses for 5 bucks."',5200,1);$('slayBub').classList.add('big5');
  SFX.drumroll&&SFX.drumroll();setTimeout(()=>{if(S.cut5){SFX.woo();SFX.cheer&&SFX.cheer()}},1700);S.cut5.to=setTimeout(end5,ms||5200)}
 function end5(){if(!S.cut5)return;clearTimeout(S.cut5.to);S.cut5=null;document.body.classList.remove('cut5');$('slayBub').classList.remove('big5');$('slayBub').style.display='none';snapCam();setTimeout(vsDrink,600)}
 function slaySay(t,ms=2400,f){const b=$('slayBub');if(!b||S.cut5&&!f)return;b.textContent=t;b.style.display='block';b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');clearTimeout(slaySay.to);slaySay.to=setTimeout(()=>b.style.display='none',ms)}
